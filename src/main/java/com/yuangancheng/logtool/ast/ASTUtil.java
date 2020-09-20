@@ -50,6 +50,10 @@ public class ASTUtil {
         return treeMaker.VarDef(modifiers, names.fromString(varName), type, initVal);
     }
 
+//    public JCTree.JCMethodDecl createMethodDecl() {
+//        return treeMaker.MethodDef()
+//    }
+
     /**
      * Create an instance of Attribute.Compound
      *
@@ -62,6 +66,8 @@ public class ASTUtil {
         for(Map.Entry<String, Object> entry : keyValueMap.entrySet()) {
             Symbol.MethodSymbol first = createMethodSymbol(keyQualifiedNameMap.get(entry.getKey()),
                     entry.getKey(),
+                    List.nil(),
+                    List.nil(),
                     Flags.ABSTRACT | Flags.PUBLIC,
                     classType.tsym);
             Attribute second = createConstant(getClassType(keyQualifiedNameMap.get(entry.getKey())),
@@ -76,16 +82,16 @@ public class ASTUtil {
         return new Attribute.Constant(type, value);
     }
 
-    private Symbol.MethodSymbol createMethodSymbol(String resQualifiedName, String name, long flags, Symbol ownerSymbol) {
-        Type methodType = createMethodType(resQualifiedName, List.nil());
+    private Symbol.MethodSymbol createMethodSymbol(String resQualifiedName, String name, List<Type> argTypes, List<Type> thrown, long flags, Symbol ownerSymbol) {
+        Type methodType = createMethodType(resQualifiedName, argTypes, thrown);
         return new Symbol.MethodSymbol(flags, names.fromString(name), methodType, ownerSymbol);
 
     }
 
-    private Type.MethodType createMethodType(String resQualifiedName, List<Type> thrown) {
+    private Type.MethodType createMethodType(String resQualifiedName, List<Type> argTypes, List<Type> thrown) {
         Type resType = getClassType(resQualifiedName);
         Type temp = createClassType0(FlagsFieldType.map.get("Type$Method"), "Method", symtab.noSymbol);
-        return new Type.MethodType(List.nil(), resType, thrown, temp.tsym);
+        return new Type.MethodType(argTypes, resType, thrown, temp.tsym);
     }
 
     public Type getClassType(String qualifiedName) {

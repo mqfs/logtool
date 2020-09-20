@@ -9,6 +9,7 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeTranslator;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Names;
+import com.yuangancheng.logtool.annotation.EnableTraceLog;
 import com.yuangancheng.logtool.enums.ConstantsEnum;
 
 import javax.annotation.processing.Messager;
@@ -37,6 +38,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private ASTUtil astUtil;
     private String classLevelSwitchKey;
     private ArrayList<String> methodLevelSwitchKey;
+    private String logFuncName;
 
     public EnableTraceLogTranslator(Messager messager, JavacTrees trees, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation) {
         this.messager = messager;
@@ -64,11 +66,13 @@ public class EnableTraceLogTranslator extends TreeTranslator {
 
         //Check if enable the open-close switch
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
-            if(!enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()).equals("")) {
-                JCTree.JCVariableDecl classLevelSwitchKeyDecl = generateSwitchKey(enableTraceLogMembersMap, treeMaker.TypeIdent(TypeTag.INT));
-                classLevelSwitchKey = classLevelSwitchKeyDecl.getName().toString();
-                jcClassDecl.defs = jcClassDecl.defs.prepend(classLevelSwitchKeyDecl);
+            if(enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()).equals("")) {
+                messager.printMessage(Diagnostic.Kind.ERROR, "Error: " + jcClassDecl.getSimpleName() + "@EnableTraceLog: Please specify a switch key");
             }
+            JCTree.JCVariableDecl classLevelSwitchKeyDecl = generateSwitchKey(enableTraceLogMembersMap, treeMaker.TypeIdent(TypeTag.INT));
+            classLevelSwitchKey = classLevelSwitchKeyDecl.getName().toString();
+            jcClassDecl.defs = jcClassDecl.defs.prepend(classLevelSwitchKeyDecl);
+
         }
         super.visitClassDef(jcClassDecl);
     }

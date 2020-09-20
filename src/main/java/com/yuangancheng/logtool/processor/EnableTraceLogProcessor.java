@@ -1,6 +1,8 @@
 package com.yuangancheng.logtool.processor;
 
 import com.sun.tools.javac.api.JavacTrees;
+import com.sun.tools.javac.code.Symtab;
+import com.sun.tools.javac.jvm.ClassReader;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -30,6 +32,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     private JavacTrees trees;
     private TreeMaker treeMaker;
     private Names names;
+    private Symtab symtab;
+    private ClassReader classReader;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -39,6 +43,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         Context context = ((JavacProcessingEnvironment)processingEnv).getContext();
         this.treeMaker = TreeMaker.instance(context);
         this.names = Names.instance(context);
+        this.symtab = Symtab.instance(context);
+        this.classReader = ClassReader.instance(context);
     }
 
     @Override
@@ -54,6 +60,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                     , trees
                     , treeMaker
                     , names
+                    , symtab
+                    , classReader
                     , (Map<String, Object>)list.get(0)
                     , (ArrayList<String>)list.get(1));
             classTree.accept(classTranslator);
@@ -77,8 +85,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         //Generate key-value pair map
         enableTraceLogMembersMap.put(ConstantsEnum.LOGGER_NAME.getValue(), enableTraceLog.loggerName());
         enableTraceLogMembersMap.put(ConstantsEnum.REQ_ID_NAME.getValue(), enableTraceLog.reqIdName());
-        enableTraceLogMembersMap.put(ConstantsEnum.ENABLE_OPEN_CLOSE_SWITCH.getValue(), enableTraceLog.enableClassLevelSwitch());
-        enableTraceLogMembersMap.put(ConstantsEnum.OPEN_CLOSE_KEY.getValue(), enableTraceLog.switchKey());
+        enableTraceLogMembersMap.put(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue(), enableTraceLog.enableClassLevelSwitch());
+        enableTraceLogMembersMap.put(ConstantsEnum.SWITCH_KEY.getValue(), enableTraceLog.switchKey());
 
         //Generate list of methods with TraceLog annotation
         memberList.forEach(member -> {

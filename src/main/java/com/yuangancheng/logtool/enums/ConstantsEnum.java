@@ -7,9 +7,11 @@ package com.yuangancheng.logtool.enums;
 public enum ConstantsEnum {
     LOGGER_NAME("loggerName"),
     REQ_ID_NAME("reqIdName"),
-    ENABLE_OPEN_CLOSE_SWITCH("enableOpenCloseSwitch"),
-    OPEN_CLOSE_KEY("openCloseKey"),
-    VAR_OPEN_CLOSE_KEY("varOpenCloseKey");
+    ENABLE_CLASS_LEVEL_SWITCH("enableClassLevelSwitch"),
+    ENABLE_METHOD_LEVEL_SWITCH("enableMethodLevelSwitch"),
+    SWITCH_KEY("switchKey"),
+    VAR_CLASS_SWITCH_KEY("varClassSwitchKey"),
+    VAR_METHOD_SWITCH_KEY("varMethodSwitchKey");
 
     private String value;
 

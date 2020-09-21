@@ -37,8 +37,9 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private ArrayList<Integer> endPosition;
     private ASTUtil astUtil;
     private String classLevelSwitchKey;
-    private ArrayList<String> methodLevelSwitchKey;
-    private String logFuncName;
+    private Map<String, String> methodLevelSwitchKeyMap;
+    private String logParamsFuncName = "";
+    private String logResFuncName = "";
 
     public EnableTraceLogTranslator(Messager messager, JavacTrees trees, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation) {
         this.messager = messager;
@@ -51,7 +52,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         this.methodListWithAnnotation = methodListWithAnnotation;
         endPosition = new ArrayList<>();
         astUtil = new ASTUtil(names, symtab, classReader, treeMaker);
-        methodLevelSwitchKey = new ArrayList<>();
+        methodLevelSwitchKeyMap = new HashMap<>();
     }
 
     @Override
@@ -69,17 +70,17 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             if(enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()).equals("")) {
                 messager.printMessage(Diagnostic.Kind.ERROR, "Error: " + jcClassDecl.getSimpleName() + "@EnableTraceLog: Please specify a switch key");
             }
-            JCTree.JCVariableDecl classLevelSwitchKeyDecl = generateSwitchKey(enableTraceLogMembersMap, treeMaker.TypeIdent(TypeTag.INT));
+            JCTree.JCVariableDecl classLevelSwitchKeyDecl = generateSwitchKey(enableTraceLogMembersMap, "int");
             classLevelSwitchKey = classLevelSwitchKeyDecl.getName().toString();
             jcClassDecl.defs = jcClassDecl.defs.prepend(classLevelSwitchKeyDecl);
-
+            logParamsFuncName = "test";
         }
         super.visitClassDef(jcClassDecl);
     }
 
     @Override
     public void visitMethodDef(JCTree.JCMethodDecl jcMethodDecl) {
-        if(!isMethodWithinFirstClass(jcMethodDecl) || !methodListWithAnnotation.contains(jcMethodDecl.getName().toString())) {
+        if(!isMethodWithinFirstClass(jcMethodDecl) || !methodListWithAnnotation.contains(jcMethodDecl.getName().toString()) || logParamsFuncName.equals(""))  {
             super.visitMethodDef(jcMethodDecl);
             return;
         }
@@ -89,7 +90,14 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         super.visitMethodDef(jcMethodDecl);
     }
 
-    private JCTree.JCVariableDecl generateSwitchKey(Map<String, Object> membersMap, JCTree.JCExpression type) {
+    /**
+     * Declare a class/method level log switch variable
+     *
+     * @param membersMap the map of annotation's properties name to value
+     * @param keyType the type of log switch key
+     * @return an instance of JCTree.JCVariableDecl
+     */
+    private JCTree.JCVariableDecl generateSwitchKey(Map<String, Object> membersMap, String keyType) {
         JCTree.JCAnnotation valueAnnotation = astUtil.createAnnotation("org.springframework.beans.factory.annotation.Value",
                 new HashMap<String, Object>() {
                     {
@@ -101,10 +109,82 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                         put("value", "java.lang.String");
                     }
                 });
-        return astUtil.createVarDecl(treeMaker.Modifiers(Flags.PRIVATE, List.of(valueAnnotation)),
+        return astUtil.createVarDecl(Flags.PRIVATE,
+                List.of(valueAnnotation),
                 ConstantsEnum.VAR_CLASS_SWITCH_KEY.getValue() + UUID.randomUUID().toString().replace("-", ""),
-                type,
+                keyType,
                 null);
+    }
+
+//    private JCTree.JCMethodDecl generateLogMethodParamsFunc() {
+//
+//    }
+
+    private JCTree.JCStatement generateLogPart() {
+        String prefix = "{args: {";
+        String suffix = "}}";
+        String comma = ",";
+        String colon = ": ";
+        String logger = (String)enableTraceLogMembersMap.get(ConstantsEnum.LOGGER_NAME.getValue());
+        JCTree.JCStatement stringBuilderAssignStatement = astUtil.createNewAssignStatement("stringBuilder",
+                "StringBuilder", null, null, List.of(astUtil.createIdent("methodName")), null);
+        JCTree.JCStatement stringBuilderAppendPrefixStatement = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createLiteral(prefix));
+                    }
+                });
+        JCTree.JCStatement forLoopSubStatement = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createLiteral("names[i]"));
+                    }
+                });
+        JCTree.JCStatement forLoopSubStatement1 = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createLiteral(colon));
+                    }
+                });
+        JCTree.JCStatement forLoopSubStatement2 = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createMethodInvocation("objects[i].toString", null));
+                    }
+                });
+        JCTree.JCStatement forLoopSubIfStatement = astUtil.createIfStatement(astUtil.createBinaryExpression(JCTree.Tag.NE, astUtil.createIdent("i"), astUtil.createLiteral(0)),
+                astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                        new ArrayList<JCTree.JCExpression>() {
+                            {
+                                add(astUtil.createLiteral(comma));
+                            }
+                        }),
+                null);
+        JCTree.JCStatement forLoopStatement = astUtil.createForLoopStatement(
+                List.of(astUtil.createVarDecl(0, null, "i", "int", astUtil.createLiteral(0))),
+                astUtil.createBinaryExpression(JCTree.Tag.LE, astUtil.createIdent("i"), astUtil.createIdent("objects.length")),
+                List.of(astUtil.createUnaryStatement(JCTree.Tag.POSTINC, astUtil.createIdent("i"))),
+                astUtil.createStatementBlock(null, List.of(forLoopSubStatement, forLoopSubStatement1, forLoopSubStatement2, forLoopSubIfStatement), null)
+        );
+        JCTree.JCStatement postForLoopStatement = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createLiteral(suffix));
+                    }
+                });
+        JCTree.JCStatement loggerInfoInvocationStatement = astUtil.createMethodInvocationExpressionStatement(
+                logger + ".info",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtil.createMethodInvocation("stringBuilder.toString", null));
+                    }
+                }
+        );
+        return astUtil.createStatementBlock(
+                null,
+                List.of(stringBuilderAssignStatement, stringBuilderAppendPrefixStatement, forLoopStatement, postForLoopStatement),
+                null
+        );
     }
 
     /**

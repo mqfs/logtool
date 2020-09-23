@@ -46,6 +46,7 @@ public class ASTUtil {
             baseTypeTagMap.put("int", TypeTag.INT);
             baseTypeTagMap.put("double", TypeTag.DOUBLE);
             baseTypeTagMap.put("boolean", TypeTag.BOOLEAN);
+            baseTypeTagMap.put("void", TypeTag.VOID);
         }
     }
 
@@ -89,7 +90,18 @@ public class ASTUtil {
                                                JCTree.JCExpression initValExpression) {
         JCTree.JCModifiers modifiers = treeMaker.Modifiers(flags, annotations);
         Name varName = names.fromString(name);
-        JCTree.JCExpression varTypeExpression = baseTypeTagMap.containsKey(varType) ? treeMaker.TypeIdent(baseTypeTagMap.get(varType)) : treeMaker.Ident(names.fromString(varType));
+        JCTree.JCExpression varTypeExpression;
+        if(!varType.contains("[]")) {
+            varTypeExpression = baseTypeTagMap.containsKey(varType) ? treeMaker.TypeIdent(baseTypeTagMap.get(varType)) : treeMaker.Ident(names.fromString(varType));
+        }else{
+            int cnt = 0;
+            for(int i = 0; i < varType.length(); i++) {
+                if(varType.charAt(i) == '[') {
+                    cnt++;
+                }
+            }
+            varTypeExpression = createArrayTypeTreeExpressionRecursively(varType.substring(0, varType.indexOf('[')), cnt);
+        }
         return treeMaker.VarDef(modifiers, varName, varTypeExpression, initValExpression);
     }
 
@@ -102,7 +114,7 @@ public class ASTUtil {
      * @param defaultValue the default value of method when this method is declared in an annotation
      * @param name the name of method
      * @param typeParams
-     * @param paramMap the map of parameter's name to parameter's type
+     * @param paramNameTypeMap the map of parameter's name to parameter's type
      * @param recvParam
      * @param exceptionThrownNameArrayList the list of thrown exceptions by method
      * @param methodBody the code block of method
@@ -114,7 +126,7 @@ public class ASTUtil {
                                                 String defaultValue,
                                                 String name,
                                                 List<JCTree.JCTypeParameter> typeParams,
-                                                Map<String, String> paramMap,
+                                                Map<String, String> paramNameTypeMap,
                                                 JCTree.JCVariableDecl recvParam,
                                                 ArrayList<String> exceptionThrownNameArrayList,
                                                 JCTree.JCBlock methodBody) {
@@ -126,8 +138,8 @@ public class ASTUtil {
             defaultValueExpression = treeMaker.Ident(names.fromString(defaultValue));
         }
         List<JCTree.JCVariableDecl> params = List.nil();
-        for(Map.Entry<String, String> entry : paramMap.entrySet()) {
-            JCTree.JCVariableDecl jcVariableDecl = createVarDecl(0, List.nil(), entry.getKey(), entry.getValue(), null);
+        for(Map.Entry<String, String> entry : paramNameTypeMap.entrySet()) {
+            JCTree.JCVariableDecl jcVariableDecl = createVarDecl(Flags.PARAMETER, List.nil(), entry.getKey(), entry.getValue(), null);
             params = params.append(jcVariableDecl);
         }
         List<JCTree.JCExpression> exceptionThrown = List.nil();
@@ -167,7 +179,7 @@ public class ASTUtil {
     }
 
     public JCTree.JCExpressionStatement createBinaryStatement(JCTree.Tag opTag, JCTree.JCExpression lhs, JCTree.JCExpression rhs) {
-        return treeMaker.Exec(createBinaryExpression(opTag, lhs, rhs));
+        return treeMaker.Exec(createBinaryExpression(lhs, opTag, rhs));
     }
 
     public JCTree.JCExpressionStatement createUnaryStatement(JCTree.Tag opTag, JCTree.JCExpression jcExpression) {
@@ -182,8 +194,57 @@ public class ASTUtil {
         return treeMaker.Exec(treeMaker.Assign(lhs, rhs));
     }
 
-    public JCTree.JCExpression createBinaryExpression(JCTree.Tag opTag, JCTree.JCExpression lhs, JCTree.JCExpression rhs) {
+    public JCTree.JCExpression createBinaryExpression(JCTree.JCExpression lhs, JCTree.Tag opTag, JCTree.JCExpression rhs) {
         return treeMaker.Binary(opTag, lhs, rhs);
+    }
+
+    /**
+     * Create an array dimension. e.g. []
+     *
+     * @param name array type name
+     * @param dimensions the dimensions of array
+     * @return an instance of JCTree.JCArrayTypeTree
+     */
+    public JCTree.JCExpression createArrayTypeTreeExpressionRecursively(String name, int dimensions) {
+        JCTree.JCExpression arrTypeExpression = null;
+        for(int i = 0; i < dimensions; i++) {
+            if(i == 0) {
+                arrTypeExpression = treeMaker.TypeArray(createIdent(name));
+            }else{
+                arrTypeExpression = treeMaker.TypeArray(arrTypeExpression);
+            }
+        }
+        return arrTypeExpression;
+    }
+
+    /**
+     * Create an array type
+     *
+     * @param name array type name
+     * @param dimensions the dimensions of array
+     * @param elementType the initial values' type of array
+     * @param elementValue the initial values of array
+     * @return an instance of JCTree.JCNewArray
+     */
+    public JCTree.JCExpression createNewArrayExpression(String name, int dimensions, ArrayList<Object> elementType, ArrayList<Object> elementValue) {
+        //Create array's dimensions. e.g. String[][][]
+        JCTree.JCExpression arrTypeExpression = createArrayTypeTreeExpressionRecursively(name, dimensions);
+
+        List<JCTree.JCExpression> elems = createInternalNewArrayExpressionRecursively(elementType, elementValue);
+        return  treeMaker.NewArray(arrTypeExpression, null, elems);
+    }
+
+    private List<JCTree.JCExpression> createInternalNewArrayExpressionRecursively(ArrayList<Object> elementType, ArrayList<Object> elementValue) {
+        List<JCTree.JCExpression> elems = List.nil();
+        for(int i = 0; i < elementType.size(); i++) {
+            if(elementValue.get(i) instanceof ArrayList) {
+                List<JCTree.JCExpression> nextElems = createInternalNewArrayExpressionRecursively((ArrayList<Object>)elementType.get(i), (ArrayList<Object>)elementValue.get(i));
+                elems = elems.append(treeMaker.NewArray(null, null, nextElems));
+            }else{
+                elems = elems.append(elementType.get(i) == JCTree.JCIdent.class ? createIdent((String)elementValue.get(i)) : createLiteral(elementValue.get(i)));
+            }
+        }
+        return elems;
     }
 
     public JCTree.JCStatement createNewAssignStatement(String assignName,
@@ -192,12 +253,11 @@ public class ASTUtil {
                                                        List<JCTree.JCExpression> typeArgs,
                                                        List<JCTree.JCExpression> args,
                                                        JCTree.JCClassDecl jcClassDecl) {
-        return createVarDecl(0, null, assignName, newClassName,
-                treeMaker.Assign(treeMaker.Ident(names.fromString(assignName)),
-                        treeMaker.NewClass(encl, typeArgs, treeMaker.Ident(names.fromString(newClassName)), args, jcClassDecl)));
+        return createVarDecl(0, List.nil(), assignName, newClassName,
+                treeMaker.NewClass(encl, typeArgs, treeMaker.Ident(names.fromString(newClassName)), args, jcClassDecl));
     }
 
-    public JCTree.JCStatement createStatementBlock(List<JCTree.JCStatement> preStatements,
+    public JCTree.JCBlock createStatementBlock(List<JCTree.JCStatement> preStatements,
                                                  List<JCTree.JCStatement> curStatements,
                                                  List<JCTree.JCStatement> nextStatements) {
         return treeMaker.Block(0, preStatements.appendList(curStatements).appendList(nextStatements));
@@ -235,18 +295,84 @@ public class ASTUtil {
     }
 
     /**
+     * Create array access iteratively
+     *
+     * @param name the array access. e.g. a[0][1][2]
+     * @return
+     */
+    public JCTree.JCExpression createArrayAccessIteratively(String name) {
+        int leftParensPos = 0;
+        while(name.charAt(leftParensPos) != '[') {
+            leftParensPos++;
+        }
+        String arrayName = name.substring(0, leftParensPos);
+        JCTree.JCExpression result = createIdent(arrayName);
+        for(int rightParensPos = leftParensPos; rightParensPos < name.length(); rightParensPos++) {
+            while(name.charAt(rightParensPos) != ']') {
+                rightParensPos++;
+            }
+            String index = name.substring(leftParensPos + 1, rightParensPos);
+            if(index.matches("^\\d+$")) {
+                result = treeMaker.Indexed(result, createLiteral(Integer.parseInt(index)));
+            }else{
+                result = treeMaker.Indexed(result, createIdent(index));
+            }
+            leftParensPos = rightParensPos + 1;
+        }
+        return result;
+    }
+
+    /**
      * Create a complete field access
      *
      * @param completeFieldName complete name of field (e.g. "System.out.println")
      * @return an instance of JCTree.JCFieldAccess
      */
-    private JCTree.JCExpression createFieldAccess(String completeFieldName) {
+    public JCTree.JCExpression createFieldAccess(String completeFieldName) {
+        JCTree.JCExpression result;
         String[] splitNameArray = completeFieldName.split("\\.");
-        JCTree.JCExpression result = treeMaker.Ident(names.fromString(splitNameArray[0]));
+        if(splitNameArray[0].contains("[")) {
+            result = createArrayAccessIteratively(splitNameArray[0]);
+        }else{
+            result = createIdent(splitNameArray[0]);
+        }
         for(int i = 1; i < splitNameArray.length; i++) {
-            result = treeMaker.Select(result, names.fromString(splitNameArray[i]));
+            if(splitNameArray[i].contains("[")) {
+                int leftParensPos = 0;
+                while(splitNameArray[i].charAt(leftParensPos) != '[') {
+                    leftParensPos++;
+                }
+                result = treeMaker.Select(result, names.fromString(splitNameArray[i].substring(0, leftParensPos)));
+                result = createInternalArrayAccess(result, splitNameArray[i].substring(leftParensPos));
+            }else{
+                result = treeMaker.Select(result, names.fromString(splitNameArray[i]));
+            }
         }
         return result;
+    }
+
+    /**
+     * Create array access for internal usage
+     *
+     * @param selected source select expression
+     * @param brackets string. e.g. "[6][i][6]"
+     * @return selected expression
+     */
+    private JCTree.JCExpression createInternalArrayAccess(JCTree.JCExpression selected, String brackets) {
+        int leftParensPos = 0;
+        for(int rightParensPos = leftParensPos + 1; rightParensPos < brackets.length(); rightParensPos++) {
+            while(brackets.charAt(rightParensPos) != ']') {
+                rightParensPos++;
+            }
+            String index = brackets.substring(leftParensPos, rightParensPos);
+            if(index.matches("^\\d+$")) {
+                selected = treeMaker.Indexed(selected, createLiteral(Integer.parseInt(index)));
+            }else{
+                selected = treeMaker.Indexed(selected, createIdent(index));
+            }
+            leftParensPos = rightParensPos + 1;
+        }
+        return selected;
     }
 
     /**

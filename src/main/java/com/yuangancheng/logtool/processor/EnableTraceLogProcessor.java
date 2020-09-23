@@ -56,14 +56,16 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
             JCTree classTree = trees.getTree(element);
             List<? extends Element> memberList = element.getEnclosedElements();
             List<Object> list = processClassMembers(enableTraceLog, memberList);
-            EnableTraceLogTranslator classTranslator = new EnableTraceLogTranslator(messager
-                    , trees
-                    , treeMaker
-                    , names
-                    , symtab
-                    , classReader
-                    , (Map<String, Object>)list.get(0)
-                    , (ArrayList<String>)list.get(1));
+            EnableTraceLogTranslator classTranslator = new EnableTraceLogTranslator(
+                    messager,
+                    trees,
+                    treeMaker,
+                    names,
+                    symtab,
+                    classReader,
+                    (Map<String, Object>)list.get(0),
+                    (ArrayList<String>)list.get(1)
+            );
             classTree.accept(classTranslator);
         });
         return true;

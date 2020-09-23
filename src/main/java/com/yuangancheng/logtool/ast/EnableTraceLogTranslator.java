@@ -1,7 +1,6 @@
 package com.yuangancheng.logtool.ast;
 
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.jvm.ClassReader;
 import com.sun.tools.javac.tree.JCTree;
@@ -21,29 +20,21 @@ import java.util.*;
  */
 public class EnableTraceLogTranslator extends TreeTranslator {
 
-    private Messager messager;
-    private JavacTrees trees;
-    private TreeMaker treeMaker;
-    private Names names;
-    private Symtab symtab;
-    private ClassReader classReader;
-    private Map<String, Object> enableTraceLogMembersMap;
-    private ArrayList<String> methodListWithAnnotation;
+    private final Messager messager;
+    private final TreeMaker treeMaker;
+    private final Map<String, Object> enableTraceLogMembersMap;
+    private final ArrayList<String> methodListWithAnnotation;
     private int classCount = 1;
-    private ArrayList<Integer> endPosition;
-    private ASTUtil astUtil;
+    private final ArrayList<Integer> endPosition;
+    private final ASTUtil astUtil;
     private String classLevelSwitchKey;
-    private Map<String, String> methodLevelSwitchKeyMap;
+    private final Map<String, String> methodLevelSwitchKeyMap;
     private String logParamsFuncName = "";
     private String logResFuncName = "";
 
-    public EnableTraceLogTranslator(Messager messager, JavacTrees trees, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation) {
+    public EnableTraceLogTranslator(Messager messager, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation) {
         this.messager = messager;
-        this.trees = trees;
         this.treeMaker = treeMaker;
-        this.names = names;
-        this.symtab = symtab;
-        this.classReader = classReader;
         this.enableTraceLogMembersMap = enableTraceLogMembersMap;
         this.methodListWithAnnotation = methodListWithAnnotation;
         endPosition = new ArrayList<>();
@@ -60,7 +51,6 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         }
         messager.printMessage(Diagnostic.Kind.NOTE, "class: " + UUID.randomUUID().toString() + "-" + jcClassDecl.getSimpleName().toString());
         classCount--;
-        logParamsFuncName = "test";
 
         /*
           Important!!! Currently need to set the default pos value (negative one) of treeMaker to the pos value (non negative one) of first declaration of current jcClassDecl.
@@ -128,7 +118,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private JCTree.JCMethodDecl generateLogMethodParamsFunc() {
         JCTree.JCStatement switchIfStatement = astUtil.createIfStatement(
                 astUtil.createBinaryExpression(astUtil.createIdent("methodLevelSwitchKey"), JCTree.Tag.EQ, astUtil.createLiteral(1)),
-                generateLogPart(),
+                generateLogParamsPart(),
                 null
         );
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
@@ -159,7 +149,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         );
     }
 
-    private JCTree.JCStatement generateLogPart() {
+    private JCTree.JCStatement generateLogParamsPart() {
         String prefix = "{in: {";
         String suffix = "}}";
         String comma = ",";
@@ -224,6 +214,17 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 List.of(stringBuilderAssignStatement, stringBuilderAppendPrefixStatement, forLoopStatement, postForLoopStatement, loggerInfoInvocationStatement),
                 List.nil()
         );
+    }
+
+    /**
+     * Generate an method invocation to log-params-func in each annotated methods with @TraceLog
+     *
+     * @param methodName
+     * @param paramsName
+     * @param paramsType
+     */
+    private JCTree.JCStatement generateMethodInvocationToLogParamsFunc(String methodName, String[] paramsName, String[] paramsType) {
+        
     }
 
     /**

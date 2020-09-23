@@ -58,7 +58,6 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
             List<Object> list = processClassMembers(enableTraceLog, memberList);
             EnableTraceLogTranslator classTranslator = new EnableTraceLogTranslator(
                     messager,
-                    trees,
                     treeMaker,
                     names,
                     symtab,

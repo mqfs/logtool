@@ -15,12 +15,12 @@ import java.util.Map;
 
 public class ASTUtil {
 
-    private Names names;
-    private Symtab symtab;
-    private ClassReader classReader;
-    private TreeMaker treeMaker;
-    private static Map<String, Type> baseTypeMap = new HashMap<>();
-    private static Map<String, TypeTag> baseTypeTagMap = new HashMap<>();
+    private final Names names;
+    private final Symtab symtab;
+    private final ClassReader classReader;
+    private final TreeMaker treeMaker;
+    private final static Map<String, Type> baseTypeMap = new HashMap<>();
+    private final static Map<String, TypeTag> baseTypeTagMap = new HashMap<>();
 
     public ASTUtil(Names names, Symtab symtab, ClassReader classReader, TreeMaker treeMaker) {
         this.names = names;

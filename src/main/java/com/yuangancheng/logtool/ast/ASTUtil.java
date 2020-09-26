@@ -154,7 +154,8 @@ public class ASTUtil {
                 params,
                 exceptionThrown,
                 methodBody,
-                defaultValueExpression);
+                defaultValueExpression
+        );
     }
 
     /**
@@ -253,8 +254,12 @@ public class ASTUtil {
                                                        List<JCTree.JCExpression> typeArgs,
                                                        List<JCTree.JCExpression> args,
                                                        JCTree.JCClassDecl jcClassDecl) {
-        return createVarDecl(0, List.nil(), assignName, newClassName,
-                treeMaker.NewClass(encl, typeArgs, treeMaker.Ident(names.fromString(newClassName)), args, jcClassDecl));
+        return createVarDecl(0,
+                List.nil(),
+                assignName,
+                newClassName,
+                treeMaker.NewClass(encl, typeArgs, treeMaker.Ident(names.fromString(newClassName)), args, jcClassDecl)
+        );
     }
 
     public JCTree.JCBlock createStatementBlock(List<JCTree.JCStatement> preStatements,
@@ -387,12 +392,14 @@ public class ASTUtil {
         List<Pair<Symbol.MethodSymbol, Attribute>> values = List.nil();
         Type classType = getClassType(qualifiedName);
         for(Map.Entry<String, Object> entry : keyValueMap.entrySet()) {
-            Symbol.MethodSymbol first = createMethodSymbol(keyQualifiedNameMap.get(entry.getKey()),
+            Symbol.MethodSymbol first = createMethodSymbol(
+                    keyQualifiedNameMap.get(entry.getKey()),
                     entry.getKey(),
                     List.nil(),
                     List.nil(),
                     Flags.ABSTRACT | Flags.PUBLIC,
-                    classType.tsym);
+                    classType.tsym
+            );
             Attribute second = createConstant(getClassType(keyQualifiedNameMap.get(entry.getKey())),
                     keyValueMap.get(entry.getKey()));
             Pair<Symbol.MethodSymbol, Attribute> pair = new Pair<>(first, second);

@@ -26,7 +26,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private final ArrayList<String> methodListWithAnnotation;
     private int classCount = 1;
     private final ArrayList<Integer> endPosition;
-    private final ASTUtil astUtil;
+    private final ASTUtils astUtils;
     private String classLevelSwitchKey;
     private final Map<String, String> methodLevelSwitchKeyMap;
     private String logParamsFuncName = "";
@@ -38,7 +38,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         this.enableTraceLogMembersMap = enableTraceLogMembersMap;
         this.methodListWithAnnotation = methodListWithAnnotation;
         endPosition = new ArrayList<>();
-        astUtil = new ASTUtil(names, symtab, classReader, treeMaker);
+        astUtils = new ASTUtils(names, symtab, classReader, treeMaker);
         methodLevelSwitchKeyMap = new HashMap<>();
     }
 
@@ -101,7 +101,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
      * @return an instance of JCTree.JCVariableDecl
      */
     private JCTree.JCVariableDecl generateSwitchKey(String switchKeyCompleteQualifiedName, String keyType, ConstantsEnum type) {
-        JCTree.JCAnnotation valueAnnotation = astUtil.createAnnotation("org.springframework.beans.factory.annotation.Value",
+        JCTree.JCAnnotation valueAnnotation = astUtils.createAnnotation("org.springframework.beans.factory.annotation.Value",
                 new HashMap<String, Object>() {
                     {
                         put("value", "${" + switchKeyCompleteQualifiedName + "}");
@@ -113,7 +113,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     }
                 }
         );
-        return astUtil.createVarDecl(Flags.PRIVATE,
+        return astUtils.createVarDecl(Flags.PRIVATE,
                 List.of(valueAnnotation),
                 type.getValue() + UUID.randomUUID().toString().replace("-", ""),
                 keyType,
@@ -122,19 +122,19 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     }
 
     private JCTree.JCMethodDecl generateLogMethodParamsFunc() {
-        JCTree.JCStatement switchIfStatement = astUtil.createIfStatement(
-                astUtil.createBinaryExpression(astUtil.createIdent("methodLevelSwitchKey"), JCTree.Tag.EQ, astUtil.createLiteral(1)),
+        JCTree.JCStatement switchIfStatement = astUtils.createIfStatement(
+                astUtils.createBinaryExpression(astUtils.createIdent("methodLevelSwitchKey"), JCTree.Tag.EQ, astUtils.createLiteral(1)),
                 generateLogParamsPart(),
                 null
         );
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
-            switchIfStatement = astUtil.createIfStatement(
-                    astUtil.createBinaryExpression(astUtil.createIdent(classLevelSwitchKey), JCTree.Tag.EQ, astUtil.createLiteral(1)),
+            switchIfStatement = astUtils.createIfStatement(
+                    astUtils.createBinaryExpression(astUtils.createIdent(classLevelSwitchKey), JCTree.Tag.EQ, astUtils.createLiteral(1)),
                     switchIfStatement,
                     null
             );
         }
-        return astUtil.createMethodDecl(
+        return astUtils.createMethodDecl(
                 Flags.PRIVATE,
                 List.nil(),
                 "void",
@@ -151,7 +151,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 },
                 null,
                 new ArrayList<>(),
-                astUtil.createStatementBlock(List.nil(), List.of(switchIfStatement), List.nil())
+                astUtils.createStatementBlock(List.nil(), List.of(switchIfStatement), List.nil())
         );
     }
 
@@ -164,75 +164,75 @@ public class EnableTraceLogTranslator extends TreeTranslator {
 //        JCTree.JCStatement stringHeaderAssignStatement = astUtil.createMethodInvocationExpressionStatement(
 //                ""
 //        )
-        JCTree.JCStatement stringBuilderAssignStatement = astUtil.createNewAssignStatement(
+        JCTree.JCStatement stringBuilderAssignStatement = astUtils.createNewAssignStatement(
                 "stringBuilder",
                 "StringBuilder",
                 null,
-                List.nil(), List.of(astUtil.createIdent("methodName")),
+                List.nil(), List.of(astUtils.createIdent("methodName")),
                 null
         );
-        JCTree.JCStatement stringBuilderAppendPrefixStatement = astUtil.createMethodInvocationExpressionStatement(
+        JCTree.JCStatement stringBuilderAppendPrefixStatement = astUtils.createMethodInvocationExpressionStatement(
                 "stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createLiteral(prefix));
+                        add(astUtils.createLiteral(prefix));
                     }
                 }
         );
-        JCTree.JCStatement forLoopSubStatement = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+        JCTree.JCStatement forLoopSubStatement = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createArrayAccessIteratively("names[i]"));
+                        add(astUtils.createArrayAccessIteratively("names[i]"));
                     }
                 }
         );
-        JCTree.JCStatement forLoopSubStatement1 = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+        JCTree.JCStatement forLoopSubStatement1 = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createLiteral(colon));
+                        add(astUtils.createLiteral(colon));
                     }
                 }
         );
-        JCTree.JCStatement forLoopSubStatement2 = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+        JCTree.JCStatement forLoopSubStatement2 = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createMethodInvocation("objects[i].toString", new ArrayList<>()));
+                        add(astUtils.createMethodInvocation("objects[i].toString", new ArrayList<>()));
                     }
                 }
         );
-        JCTree.JCStatement forLoopSubIfStatement = astUtil.createIfStatement(astUtil.createBinaryExpression(astUtil.createIdent("i"), JCTree.Tag.NE, astUtil.createBinaryExpression(astUtil.createFieldAccess("objects.length"), JCTree.Tag.MINUS, astUtil.createLiteral(1))),
-                astUtil.createMethodInvocationExpressionStatement(
+        JCTree.JCStatement forLoopSubIfStatement = astUtils.createIfStatement(astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.NE, astUtils.createBinaryExpression(astUtils.createFieldAccess("objects.length"), JCTree.Tag.MINUS, astUtils.createLiteral(1))),
+                astUtils.createMethodInvocationExpressionStatement(
                         "stringBuilder.append",
                         new ArrayList<JCTree.JCExpression>() {
                             {
-                                add(astUtil.createLiteral(comma));
+                                add(astUtils.createLiteral(comma));
                             }
                         }
                 ),
                 null
         );
-        JCTree.JCStatement forLoopStatement = astUtil.createForLoopStatement(
-                List.of(astUtil.createVarDecl(0, List.nil(), "i", "int", astUtil.createLiteral(0))),
-                astUtil.createBinaryExpression(astUtil.createIdent("i"), JCTree.Tag.LT, astUtil.createFieldAccess("objects.length")),
-                List.of(astUtil.createUnaryStatement(JCTree.Tag.POSTINC, astUtil.createIdent("i"))),
-                astUtil.createStatementBlock(List.nil(), List.of(forLoopSubStatement, forLoopSubStatement1, forLoopSubStatement2, forLoopSubIfStatement), List.nil())
+        JCTree.JCStatement forLoopStatement = astUtils.createForLoopStatement(
+                List.of(astUtils.createVarDecl(0, List.nil(), "i", "int", astUtils.createLiteral(0))),
+                astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.LT, astUtils.createFieldAccess("objects.length")),
+                List.of(astUtils.createUnaryStatement(JCTree.Tag.POSTINC, astUtils.createIdent("i"))),
+                astUtils.createStatementBlock(List.nil(), List.of(forLoopSubStatement, forLoopSubStatement1, forLoopSubStatement2, forLoopSubIfStatement), List.nil())
         );
-        JCTree.JCStatement postForLoopStatement = astUtil.createMethodInvocationExpressionStatement("stringBuilder.append",
+        JCTree.JCStatement postForLoopStatement = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createLiteral(suffix));
+                        add(astUtils.createLiteral(suffix));
                     }
                 }
         );
-        JCTree.JCStatement loggerInfoInvocationStatement = astUtil.createMethodInvocationExpressionStatement(
+        JCTree.JCStatement loggerInfoInvocationStatement = astUtils.createMethodInvocationExpressionStatement(
                 logger + ".info",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtil.createMethodInvocation("stringBuilder.toString", new ArrayList<>()));
+                        add(astUtils.createMethodInvocation("stringBuilder.toString", new ArrayList<>()));
                     }
                 }
         );
-        return astUtil.createStatementBlock(
+        return astUtils.createStatementBlock(
                 List.nil(),
                 List.of(stringBuilderAssignStatement, stringBuilderAppendPrefixStatement, forLoopStatement, postForLoopStatement, loggerInfoInvocationStatement),
                 List.nil()

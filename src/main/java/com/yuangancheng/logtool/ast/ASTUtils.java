@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ASTUtil {
+public class ASTUtils {
 
     private final Names names;
     private final Symtab symtab;
@@ -22,7 +22,7 @@ public class ASTUtil {
     private final static Map<String, Type> baseTypeMap = new HashMap<>();
     private final static Map<String, TypeTag> baseTypeTagMap = new HashMap<>();
 
-    public ASTUtil(Names names, Symtab symtab, ClassReader classReader, TreeMaker treeMaker) {
+    public ASTUtils(Names names, Symtab symtab, ClassReader classReader, TreeMaker treeMaker) {
         this.names = names;
         this.symtab = symtab;
         this.classReader = classReader;
@@ -197,6 +197,14 @@ public class ASTUtil {
 
     public JCTree.JCExpression createBinaryExpression(JCTree.JCExpression lhs, JCTree.Tag opTag, JCTree.JCExpression rhs) {
         return treeMaker.Binary(opTag, lhs, rhs);
+    }
+
+    public JCTree.JCExpression createTypeCastExpression(Type clazz, JCTree.JCExpression transformedExpression) {
+        return treeMaker.TypeCast(clazz, transformedExpression);
+    }
+
+    public JCTree.JCExpression createParensExpression(JCTree.JCExpression wrappedExpression) {
+        return treeMaker.Parens(wrappedExpression);
     }
 
     /**

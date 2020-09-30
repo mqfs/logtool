@@ -276,8 +276,8 @@ public class ASTUtils {
         return treeMaker.Block(0, preStatements.appendList(curStatements).appendList(nextStatements));
     }
 
-    public JCTree.JCStatement createMethodInvocationExpressionStatement(String completeFieldName, ArrayList<JCTree.JCExpression> keyValueList) {
-        return treeMaker.Exec(createMethodInvocation(completeFieldName, keyValueList));
+    public JCTree.JCStatement createMethodInvocationExpressionStatement(String completeFieldName, ArrayList<JCTree.JCExpression> paramsValueList) {
+        return treeMaker.Exec(createMethodInvocation0(completeFieldName, paramsValueList));
     }
 
     /**
@@ -287,7 +287,7 @@ public class ASTUtils {
      * @param keyValueList the arraylist of arguments
      * @return an instance of JCTree.JCMethodInvocation
      */
-    public JCTree.JCExpression createMethodInvocation(String completeFieldName, ArrayList<JCTree.JCExpression> keyValueList) {
+    public JCTree.JCExpression createMethodInvocation0(String completeFieldName, ArrayList<JCTree.JCExpression> keyValueList) {
         if(completeFieldName == null || completeFieldName.equals("")) {
             return null;
         }
@@ -298,6 +298,8 @@ public class ASTUtils {
         JCTree.JCExpression completeFieldAccess = createFieldAccess(completeFieldName);
         return treeMaker.Apply(List.nil(), completeFieldAccess, args);
     }
+
+    public JCTree.JCExpression createMethodInvocation1(JCTree.JCExpression preExpression, )
 
     public JCTree.JCExpression createIdent(String name) {
         return treeMaker.Ident(names.fromString(name));

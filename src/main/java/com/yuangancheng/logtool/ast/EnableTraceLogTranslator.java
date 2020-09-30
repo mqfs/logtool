@@ -161,9 +161,12 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         String comma = ",";
         String colon = ": ";
         String logger = (String)enableTraceLogMembersMap.get(ConstantsEnum.LOGGER_NAME.getValue());
-//        JCTree.JCStatement stringHeaderAssignStatement = astUtil.createMethodInvocationExpressionStatement(
-//                ""
-//        )
+        if(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
+            astUtils.createTypeCastExpression(
+                    astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
+                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
+                    );
+        }
         JCTree.JCStatement stringBuilderAssignStatement = astUtils.createNewAssignStatement(
                 "stringBuilder",
                 "StringBuilder",
@@ -196,7 +199,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         JCTree.JCStatement forLoopSubStatement2 = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtils.createMethodInvocation("objects[i].toString", new ArrayList<>()));
+                        add(astUtils.createMethodInvocation0("objects[i].toString", new ArrayList<>()));
                     }
                 }
         );
@@ -228,7 +231,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 logger + ".info",
                 new ArrayList<JCTree.JCExpression>() {
                     {
-                        add(astUtils.createMethodInvocation("stringBuilder.toString", new ArrayList<>()));
+                        add(astUtils.createMethodInvocation0("stringBuilder.toString", new ArrayList<>()));
                     }
                 }
         );

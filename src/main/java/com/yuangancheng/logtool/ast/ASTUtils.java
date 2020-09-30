@@ -19,8 +19,9 @@ public class ASTUtils {
     private final Symtab symtab;
     private final ClassReader classReader;
     private final TreeMaker treeMaker;
-    private final static Map<String, Type> baseTypeMap = new HashMap<>();
-    private final static Map<String, TypeTag> baseTypeTagMap = new HashMap<>();
+    private static final Map<String, Type> baseTypeMap = new HashMap<>();
+    private static final Map<String, TypeTag> baseTypeTagMap = new HashMap<>();
+    public final JCTree.JCBlock EMPTY_BLOCK;
 
     public ASTUtils(Names names, Symtab symtab, ClassReader classReader, TreeMaker treeMaker) {
         this.names = names;
@@ -48,6 +49,7 @@ public class ASTUtils {
             baseTypeTagMap.put("boolean", TypeTag.BOOLEAN);
             baseTypeTagMap.put("void", TypeTag.VOID);
         }
+        EMPTY_BLOCK = treeMaker.Block(0, List.nil());
     }
 
     private static class FlagsFieldType {
@@ -270,10 +272,13 @@ public class ASTUtils {
         );
     }
 
-    public JCTree.JCBlock createStatementBlock(List<JCTree.JCStatement> preStatements,
-                                                 List<JCTree.JCStatement> curStatements,
-                                                 List<JCTree.JCStatement> nextStatements) {
-        return treeMaker.Block(0, preStatements.appendList(curStatements).appendList(nextStatements));
+    @SafeVarargs
+    public final JCTree.JCBlock createStatementBlock(List<JCTree.JCStatement> statementsList, List<JCTree.JCStatement>... statementsLists) {
+        JCTree.JCBlock result = treeMaker.Block(0, statementsList);
+        for (List<JCTree.JCStatement> list : statementsLists) {
+            result = treeMaker.Block(0, result.getStatements().appendList(list));
+        }
+        return result;
     }
 
     public JCTree.JCStatement createMethodInvocationExpressionStatement(String completeFieldName, ArrayList<JCTree.JCExpression> paramsValueList) {
@@ -284,22 +289,28 @@ public class ASTUtils {
      * Create a method invocation
      *
      * @param completeFieldName complete field name (e.g. its representation like "System.out.println")
-     * @param keyValueList the arraylist of arguments
+     * @param paramsValueList the arraylist of arguments
      * @return an instance of JCTree.JCMethodInvocation
      */
-    public JCTree.JCExpression createMethodInvocation0(String completeFieldName, ArrayList<JCTree.JCExpression> keyValueList) {
+    public JCTree.JCExpression createMethodInvocation0(String completeFieldName, ArrayList<JCTree.JCExpression> paramsValueList) {
         if(completeFieldName == null || completeFieldName.equals("")) {
             return null;
         }
         List<JCTree.JCExpression> args = List.nil();
-        for(JCTree.JCExpression jcExpression : keyValueList) {
+        for(JCTree.JCExpression jcExpression : paramsValueList) {
             args = args.append(jcExpression);
         }
-        JCTree.JCExpression completeFieldAccess = createFieldAccess(completeFieldName);
+        JCTree.JCExpression completeFieldAccess = createCompleteFieldAccess(completeFieldName);
         return treeMaker.Apply(List.nil(), completeFieldAccess, args);
     }
 
-    public JCTree.JCExpression createMethodInvocation1(JCTree.JCExpression preExpression, )
+    public JCTree.JCExpression createMethodInvocation1(JCTree.JCExpression preExpression, String nextField, ArrayList<JCTree.JCExpression> paramsValueList) {
+        List<JCTree.JCExpression> args = List.nil();
+        for(JCTree.JCExpression jcExpression : paramsValueList) {
+            args = args.append(jcExpression);
+        }
+        return treeMaker.Apply(List.nil(), createFieldAccess(preExpression, nextField), args);
+    }
 
     public JCTree.JCExpression createIdent(String name) {
         return treeMaker.Ident(names.fromString(name));
@@ -343,7 +354,7 @@ public class ASTUtils {
      * @param completeFieldName complete name of field (e.g. "System.out.println")
      * @return an instance of JCTree.JCFieldAccess
      */
-    public JCTree.JCExpression createFieldAccess(String completeFieldName) {
+    public JCTree.JCExpression createCompleteFieldAccess(String completeFieldName) {
         JCTree.JCExpression result;
         String[] splitNameArray = completeFieldName.split("\\.");
         if(splitNameArray[0].contains("[")) {
@@ -364,6 +375,10 @@ public class ASTUtils {
             }
         }
         return result;
+    }
+
+    public JCTree.JCExpression createFieldAccess(JCTree.JCExpression preExpression, String nextField) {
+        return treeMaker.Select(preExpression, names.fromString(nextField));
     }
 
     /**

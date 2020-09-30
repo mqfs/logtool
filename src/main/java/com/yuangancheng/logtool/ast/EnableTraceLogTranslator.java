@@ -151,7 +151,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 },
                 null,
                 new ArrayList<>(),
-                astUtils.createStatementBlock(List.nil(), List.of(switchIfStatement), List.nil())
+                astUtils.createStatementBlock(List.of(switchIfStatement))
         );
     }
 
@@ -161,18 +161,57 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         String comma = ",";
         String colon = ": ";
         String logger = (String)enableTraceLogMembersMap.get(ConstantsEnum.LOGGER_NAME.getValue());
-        if(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
-            astUtils.createTypeCastExpression(
-                    astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
-                    );
-        }
         JCTree.JCStatement stringBuilderAssignStatement = astUtils.createNewAssignStatement(
                 "stringBuilder",
                 "StringBuilder",
                 null,
-                List.nil(), List.of(astUtils.createIdent("methodName")),
+                List.nil(),
+                List.nil(),
                 null
+        );
+        List<JCTree.JCStatement> headerRelatedStatements = List.nil();
+        if(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
+            JCTree.JCStatement headerStringAssignStatement = astUtils.createVarDecl(
+                    0,
+                    List.nil(),
+                    "reqId",
+                    "String",
+                    astUtils.createMethodInvocation1(
+                            astUtils.createMethodInvocation1(
+                                    astUtils.createParensExpression(
+                                            astUtils.createTypeCastExpression(
+                                                    astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
+                                                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
+                                            )
+                                    ),
+                                    "getRequest",
+                                    new ArrayList<>()
+                            ),
+                            "getHeader",
+                            new ArrayList<JCTree.JCExpression>() {
+                                {
+                                    add(astUtils.createLiteral(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue())));
+                                }
+                            }
+                    )
+            );
+            JCTree.JCStatement stringBuilderAppendHeaderStatement = astUtils.createMethodInvocationExpressionStatement(
+                    "stringBuilder.append",
+                    new ArrayList<JCTree.JCExpression>() {
+                        {
+                            add(astUtils.createBinaryExpression(astUtils.createIdent("reqId"), JCTree.Tag.PLUS, astUtils.createLiteral(":")));
+                        }
+                    }
+            );
+            headerRelatedStatements = headerRelatedStatements.append(headerStringAssignStatement).append(stringBuilderAppendHeaderStatement);
+        }
+        JCTree.JCStatement stringBuilderAppendMethodNameStatement = astUtils.createMethodInvocationExpressionStatement(
+                "stringBuilder.append",
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(astUtils.createIdent("methodName"));
+                    }
+                }
         );
         JCTree.JCStatement stringBuilderAppendPrefixStatement = astUtils.createMethodInvocationExpressionStatement(
                 "stringBuilder.append",
@@ -203,7 +242,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     }
                 }
         );
-        JCTree.JCStatement forLoopSubIfStatement = astUtils.createIfStatement(astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.NE, astUtils.createBinaryExpression(astUtils.createFieldAccess("objects.length"), JCTree.Tag.MINUS, astUtils.createLiteral(1))),
+        JCTree.JCStatement forLoopSubIfStatement = astUtils.createIfStatement(astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.NE, astUtils.createBinaryExpression(astUtils.createCompleteFieldAccess("objects.length"), JCTree.Tag.MINUS, astUtils.createLiteral(1))),
                 astUtils.createMethodInvocationExpressionStatement(
                         "stringBuilder.append",
                         new ArrayList<JCTree.JCExpression>() {
@@ -216,9 +255,9 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         );
         JCTree.JCStatement forLoopStatement = astUtils.createForLoopStatement(
                 List.of(astUtils.createVarDecl(0, List.nil(), "i", "int", astUtils.createLiteral(0))),
-                astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.LT, astUtils.createFieldAccess("objects.length")),
+                astUtils.createBinaryExpression(astUtils.createIdent("i"), JCTree.Tag.LT, astUtils.createCompleteFieldAccess("objects.length")),
                 List.of(astUtils.createUnaryStatement(JCTree.Tag.POSTINC, astUtils.createIdent("i"))),
-                astUtils.createStatementBlock(List.nil(), List.of(forLoopSubStatement, forLoopSubStatement1, forLoopSubStatement2, forLoopSubIfStatement), List.nil())
+                astUtils.createStatementBlock(List.of(forLoopSubStatement, forLoopSubStatement1, forLoopSubStatement2, forLoopSubIfStatement))
         );
         JCTree.JCStatement postForLoopStatement = astUtils.createMethodInvocationExpressionStatement("stringBuilder.append",
                 new ArrayList<JCTree.JCExpression>() {
@@ -236,9 +275,9 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 }
         );
         return astUtils.createStatementBlock(
-                List.nil(),
-                List.of(stringBuilderAssignStatement, stringBuilderAppendPrefixStatement, forLoopStatement, postForLoopStatement, loggerInfoInvocationStatement),
-                List.nil()
+                List.of(stringBuilderAssignStatement),
+                headerRelatedStatements,
+                List.of(stringBuilderAppendMethodNameStatement, stringBuilderAppendPrefixStatement, forLoopStatement, postForLoopStatement, loggerInfoInvocationStatement)
         );
     }
 

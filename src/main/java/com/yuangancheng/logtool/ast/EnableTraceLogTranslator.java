@@ -11,8 +11,10 @@ import com.sun.tools.javac.util.Names;
 import com.yuangancheng.logtool.enums.ConstantsEnum;
 
 import javax.annotation.processing.Messager;
+import javax.lang.model.element.Name;
 import javax.tools.Diagnostic;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author: Gancheng Yuan
@@ -24,11 +26,11 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private final TreeMaker treeMaker;
     private final Map<String, Object> enableTraceLogMembersMap;
     private final ArrayList<String> methodListWithAnnotation;
-    private int classCount = 1;
+    private JCTree.JCClassDecl classDecl;
     private final ArrayList<Integer> endPosition;
     private final ASTUtils astUtils;
     private String classLevelSwitchKey;
-    private final Map<String, String> methodLevelSwitchKeyMap;
+    private Map<String, String> methodLevelSwitchKeyMap;
     private String logParamsFuncName = "";
     private String logResFuncName = "";
 
@@ -37,6 +39,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         this.treeMaker = treeMaker;
         this.enableTraceLogMembersMap = enableTraceLogMembersMap;
         this.methodListWithAnnotation = methodListWithAnnotation;
+        this.classDecl = null;
         endPosition = new ArrayList<>();
         astUtils = new ASTUtils(names, symtab, classReader, treeMaker);
         methodLevelSwitchKeyMap = new HashMap<>();
@@ -44,20 +47,18 @@ public class EnableTraceLogTranslator extends TreeTranslator {
 
     @Override
     public void visitClassDef(JCTree.JCClassDecl jcClassDecl) {
-        if(classCount == 0) {
+        if(classDecl != null) {
             endPosition.add(getClassEndPosition(jcClassDecl));
             super.visitClassDef(jcClassDecl);
             return;
         }
-        messager.printMessage(Diagnostic.Kind.NOTE, "class: " + UUID.randomUUID().toString() + "-" + jcClassDecl.getSimpleName().toString());
-        classCount--;
+
+        this.classDecl = jcClassDecl;
 
         /*
           Important!!! Currently need to set the default pos value (negative one) of treeMaker to the pos value (non negative one) of first declaration of current jcClassDecl.
          */
-        Iterator<JCTree> iterator = jcClassDecl.defs.iterator();
-        while(iterator.hasNext()) {
-            JCTree jcTree = iterator.next();
+        for(JCTree jcTree : jcClassDecl.defs) {
             this.treeMaker.pos = jcTree.pos;
             break;
         }
@@ -78,6 +79,66 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             jcClassDecl.defs = jcClassDecl.defs.append(logParamsFuncDecl);
             logParamsFuncName = logParamsFuncDecl.getName().toString();
         }
+
+        ArrayList<JCTree.JCMethodDecl> methodDecls = new ArrayList<JCTree.JCMethodDecl>(){
+            {
+                addAll(jcClassDecl.getMembers().stream()
+                        .filter(jcTree -> jcTree instanceof JCTree.JCMethodDecl)
+                        .filter(jcTree -> {
+                            JCTree.JCMethodDecl methodDecl = (JCTree.JCMethodDecl)jcTree;
+                            for(JCTree.JCAnnotation jcAnnotation : methodDecl.getModifiers().getAnnotations()) {
+                                if(((JCTree.JCIdent)jcAnnotation.getAnnotationType()).getName().toString().equals("TraceLog")) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        })
+                        .map(jcTree -> (JCTree.JCMethodDecl)jcTree).collect(Collectors.toList())
+                );
+            }
+        };
+        for(JCTree.JCMethodDecl methodDecl : methodDecls) {
+            List<JCTree.JCAnnotation> annotationList = methodDecl.getModifiers().getAnnotations();
+            JCTree.JCAnnotation traceLogAnnotation = null;
+            for(JCTree.JCAnnotation jcAnnotation : annotationList) {
+                traceLogAnnotation = jcAnnotation;
+                if(((JCTree.JCIdent)traceLogAnnotation.getAnnotationType()).getName().toString().equals("TraceLog")) {
+                    break;
+                }
+            }
+            boolean enableMethodLevelSwitch = false;
+            List<JCTree.JCExpression> annotationArgList = traceLogAnnotation.getArguments();
+            for(JCTree.JCExpression arg : annotationArgList) {
+                JCTree.JCAssign assign  = (JCTree.JCAssign)arg;
+                if(((JCTree.JCIdent)assign.getVariable()).getName().toString().equals(ConstantsEnum.ENABLE_METHOD_LEVEL_SWITCH.getValue())) {
+                    if(((JCTree.JCLiteral)assign.getExpression()).getValue().equals(true)) {
+                        enableMethodLevelSwitch = true;
+                        break;
+                    }
+                }
+            }
+
+            /* generate method-level-switch-keys for all method annotated with @TraceLog */
+            String methodSwitchKey = null;
+            JCTree.JCVariableDecl methodSwitchVariableDecl = null;
+            if(enableMethodLevelSwitch) {
+                for(JCTree.JCExpression arg : annotationArgList) {
+                    JCTree.JCAssign assign  = (JCTree.JCAssign)arg;
+                    if(((JCTree.JCIdent)assign.getVariable()).getName().toString().equals("switchKey") && !((JCTree.JCLiteral)assign.getExpression()).getValue().equals("")) {
+                        methodSwitchKey = (String)((JCTree.JCLiteral)assign.getExpression()).getValue();
+                        break;
+                    }
+                }
+                methodSwitchVariableDecl = generateSwitchKey(
+                        methodSwitchKey,
+                        "int",
+                        ConstantsEnum.VAR_METHOD_SWITCH_KEY
+                );
+                classDecl.defs = classDecl.defs.prepend(methodSwitchVariableDecl);
+                methodLevelSwitchKeyMap.put(methodDecl.getName().toString(), methodSwitchVariableDecl.getName().toString());
+            }
+        }
+        
         super.visitClassDef(jcClassDecl);
     }
 
@@ -87,20 +148,49 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             super.visitMethodDef(jcMethodDecl);
             return;
         }
-        messager.printMessage(Diagnostic.Kind.NOTE, "method: " + UUID.randomUUID().toString() +
-                "-" + jcMethodDecl.getName().toString() +
-                "-" + jcMethodDecl.sym.owner.toString());
+
+        List<JCTree.JCAnnotation> annotationList = jcMethodDecl.getModifiers().getAnnotations();
+        JCTree.JCAnnotation traceLogAnnotation = null;
+        for (JCTree.JCAnnotation jcAnnotation : annotationList) {
+            traceLogAnnotation = jcAnnotation;
+            if (traceLogAnnotation.getAnnotationType().equals(astUtils.createIdent("TraceLog"))) {
+                break;
+            }
+        }
+        boolean enableMethodLevelSwitch = false;
+        List<JCTree.JCExpression> annotationArgList = traceLogAnnotation.getArguments();
+        for(JCTree.JCExpression arg : annotationArgList) {
+            JCTree.JCAssign assign  = (JCTree.JCAssign)arg;
+            if(((JCTree.JCIdent)assign.getVariable()).getName().toString().equals(ConstantsEnum.ENABLE_METHOD_LEVEL_SWITCH.getValue())) {
+                if(((JCTree.JCLiteral)assign.getExpression()).getValue().equals(true)) {
+                    enableMethodLevelSwitch = true;
+                    break;
+                }
+            }
+        }
+
+        /* generate method invocation to log-method-params-func */
+        JCTree.JCStatement methodInvocationStatement = generateMethodInvocationStatement2LogParamsFunc(
+                enableMethodLevelSwitch,
+                methodLevelSwitchKeyMap.get(jcMethodDecl.getName().toString()),
+                jcMethodDecl
+        );
+        jcMethodDecl.body = astUtils.createStatementBlock(
+                List.of(methodInvocationStatement),
+                jcMethodDecl.getBody().getStatements()
+        );
+
         super.visitMethodDef(jcMethodDecl);
     }
 
     /**
      * Declare a class/method level log switch variable
      *
-     * @param switchKeyCompleteQualifiedName the complete qualified name of switch key property in application configuration
+     * @param switchKeyCompleteQualifiedName the complete qualified name of switch key property in application configuration file
      * @param keyType the type of log switch key
      * @return an instance of JCTree.JCVariableDecl
      */
-    private JCTree.JCVariableDecl generateSwitchKey(String switchKeyCompleteQualifiedName, String keyType, ConstantsEnum type) {
+    private JCTree.JCVariableDecl generateSwitchKey(String switchKeyCompleteQualifiedName, String keyType, ConstantsEnum level) {
         JCTree.JCAnnotation valueAnnotation = astUtils.createAnnotation("org.springframework.beans.factory.annotation.Value",
                 new HashMap<String, Object>() {
                     {
@@ -113,9 +203,10 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     }
                 }
         );
-        return astUtils.createVarDecl(Flags.PRIVATE,
+        return astUtils.createVarDecl(
+                Flags.PRIVATE,
                 List.of(valueAnnotation),
-                type.getValue() + UUID.randomUUID().toString().replace("-", ""),
+                level.getValue() + UUID.randomUUID().toString().replace("-", ""),
                 keyType,
                 null
         );
@@ -135,13 +226,13 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             );
         }
         return astUtils.createMethodDecl(
-                Flags.PRIVATE,
+                Flags.PRIVATE | Flags.FINAL,
                 List.nil(),
                 "void",
                 null,
                 "printMethodParams" + UUID.randomUUID().toString().replace("-", ""),
                 List.nil(),
-                new HashMap<String, String>() {
+                new LinkedHashMap<String, String>() {
                     {
                         put("methodLevelSwitchKey", "int");
                         put("methodName", "String");
@@ -281,16 +372,58 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         );
     }
 
+
     /**
-     * Generate an method invocation to log-params-func in each annotated methods with @TraceLog
+     * Generate a method invocation statement to log-params-func in each annotated methods with @TraceLog
      *
-     * @param methodName
-     * @param paramsName
-     * @param paramsType
+     * @param enableMethodLevelSwitch
+     * @param methodDecl
+     * @return
      */
-//    private JCTree.JCStatement generateMethodInvocation2LogParamsFunc(String methodName, String[] paramsName, String[] paramsType) {
-//
-//    }
+    private JCTree.JCStatement generateMethodInvocationStatement2LogParamsFunc(boolean enableMethodLevelSwitch, String methodLevelSwitchKey, JCTree.JCMethodDecl methodDecl) {
+        /* generate method invocation of print-method-params method */
+        return astUtils.createMethodInvocationExpressionStatement(
+                "this." + logParamsFuncName,
+                new ArrayList<JCTree.JCExpression>() {
+                    {
+                        add(enableMethodLevelSwitch ? astUtils.createIdent(methodLevelSwitchKey) : astUtils.createLiteral(1));
+                        add(astUtils.createLiteral(methodDecl.getName().toString()));
+                        add(
+                                astUtils.createNewArrayExpression(
+                                        "String",
+                                        1,
+                                        new ArrayList<Object>() {
+                                            {
+                                                addAll(methodDecl.getParameters().stream().map(jcVariableDecl -> JCTree.JCLiteral.class).collect(Collectors.toList()));
+                                            }
+                                        },
+                                        new ArrayList<Object>() {
+                                            {
+                                                addAll(methodDecl.getParameters().stream().map(JCTree.JCVariableDecl::getName).map(Name::toString).collect(Collectors.toList()));
+                                            }
+                                        }
+                                )
+                        );
+                        add(
+                                astUtils.createNewArrayExpression(
+                                        "Object",
+                                        1,
+                                        new ArrayList<Object>() {
+                                            {
+                                                addAll(methodDecl.getParameters().stream().map(jcVariableDecl -> JCTree.JCIdent.class).collect(Collectors.toList()));
+                                            }
+                                        },
+                                        new ArrayList<Object>() {
+                                            {
+                                                addAll(methodDecl.getParameters().stream().map(JCTree.JCVariableDecl::getName).map(Name::toString).collect(Collectors.toList()));
+                                            }
+                                        }
+                                )
+                        );
+                    }
+                }
+        );
+    }
 
     /**
      * Check if the method is in the outmost class
@@ -300,7 +433,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
      */
     private boolean isMethodWithinFirstClass(JCTree.JCMethodDecl jcMethodDecl) {
         int methodStartPosition = jcMethodDecl.getEndPosition(null);
-        if(classCount == 1 || endPosition.size() == 0) {
+        if(classDecl == null || endPosition.size() == 0) {
             return true;
         }
 

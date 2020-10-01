@@ -11,6 +11,7 @@ import com.sun.tools.javac.util.Pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ASTUtils {
@@ -128,7 +129,7 @@ public class ASTUtils {
                                                 String defaultValue,
                                                 String name,
                                                 List<JCTree.JCTypeParameter> typeParams,
-                                                Map<String, String> paramNameTypeMap,
+                                                LinkedHashMap<String, String> paramNameTypeMap,
                                                 JCTree.JCVariableDecl recvParam,
                                                 ArrayList<String> exceptionThrownNameArrayList,
                                                 JCTree.JCBlock methodBody) {
@@ -233,16 +234,21 @@ public class ASTUtils {
      *
      * @param name array type name
      * @param dimensions the dimensions of array
-     * @param elementType the initial values' type of array
+     * @param elementType the initial values' type of array (JCTree.JCIdent, JCTree.JCLiteral, or ArrayList)
      * @param elementValue the initial values of array
      * @return an instance of JCTree.JCNewArray
      */
     public JCTree.JCExpression createNewArrayExpression(String name, int dimensions, ArrayList<Object> elementType, ArrayList<Object> elementValue) {
         //Create array's dimensions. e.g. String[][][]
-        JCTree.JCExpression arrTypeExpression = createArrayTypeTreeExpressionRecursively(name, dimensions);
+        JCTree.JCExpression arrTypeExpression = createArrayTypeTreeExpressionRecursively(name, dimensions - 1);
+
+        /* the dimension of result array is one */
+        if(arrTypeExpression == null) {
+            arrTypeExpression = createIdent(name);
+        }
 
         List<JCTree.JCExpression> elems = createInternalNewArrayExpressionRecursively(elementType, elementValue);
-        return  treeMaker.NewArray(arrTypeExpression, null, elems);
+        return treeMaker.NewArray(arrTypeExpression, List.nil(), elems);
     }
 
     private List<JCTree.JCExpression> createInternalNewArrayExpressionRecursively(ArrayList<Object> elementType, ArrayList<Object> elementValue) {
@@ -250,7 +256,7 @@ public class ASTUtils {
         for(int i = 0; i < elementType.size(); i++) {
             if(elementValue.get(i) instanceof ArrayList) {
                 List<JCTree.JCExpression> nextElems = createInternalNewArrayExpressionRecursively((ArrayList<Object>)elementType.get(i), (ArrayList<Object>)elementValue.get(i));
-                elems = elems.append(treeMaker.NewArray(null, null, nextElems));
+                elems = elems.append(treeMaker.NewArray(null, List.nil(), nextElems));
             }else{
                 elems = elems.append(elementType.get(i) == JCTree.JCIdent.class ? createIdent((String)elementValue.get(i)) : createLiteral(elementValue.get(i)));
             }

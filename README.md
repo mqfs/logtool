@@ -7,7 +7,7 @@ Logtool is a Java library that provides facilities to log each method's paramete
 3. Support configurable class/method level switch based on properties within application.yml/application.properties (Spring-relevant application) or Apollo in enabling to log contents.
 4. Support  getting TraceId from HttpServletRequest Header or Parameters.
 
-## ToDo
+## TODO
 1. Support configurable time period for logging upon class/method level.
 2. Support generic methods and generic parameters.
 3. Support multi-threads.

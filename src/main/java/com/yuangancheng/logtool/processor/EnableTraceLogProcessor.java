@@ -50,7 +50,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         Set<? extends Element> elementSet = roundEnv.getElementsAnnotatedWith(EnableTraceLog.class);
-        elementSet.forEach(element -> {
+        for(Element element : elementSet) {
             EnableTraceLog enableTraceLog = element.getAnnotation(EnableTraceLog.class);
             messager.printMessage(Diagnostic.Kind.NOTE, UUID.randomUUID().toString() + "-" + element.toString());
             JCTree classTree = trees.getTree(element);
@@ -66,7 +66,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                     (ArrayList<String>)list.get(1)
             );
             classTree.accept(classTranslator);
-        });
+        }
         return true;
     }
 

@@ -161,6 +161,29 @@ public class ASTUtils {
         );
     }
 
+    public JCTree.JCWhileLoop createWhileLoopStatement(JCTree.JCExpression cond, JCTree.JCStatement body) {
+        return treeMaker.WhileLoop(cond, body);
+    }
+
+    public JCTree.JCDoWhileLoop createDoWhileLoopStatement(JCTree.JCExpression cond, JCTree.JCStatement body) {
+        return treeMaker.DoLoop(body, cond);
+    }
+
+    public JCTree.JCForLoop createForLoopStatement(List<JCTree.JCStatement> init,
+                                                   JCTree.JCExpression condition,
+                                                   List<JCTree.JCExpressionStatement> step,
+                                                   JCTree.JCStatement body) {
+        return treeMaker.ForLoop(init, condition, step, body);
+    }
+
+    public JCTree.JCCase createCaseStatement(JCTree.JCExpression pat, List<JCTree.JCStatement> stats) {
+        return treeMaker.Case(pat, stats);
+    }
+
+    public JCTree.JCSwitch createSwitchStatement(JCTree.JCExpression selector, List<JCTree.JCCase> cases) {
+        return treeMaker.Switch(selector, cases);
+    }
+
     /**
      * Create a "if" statement
      *
@@ -169,17 +192,26 @@ public class ASTUtils {
      * @param elsePart the "else"'s statements part of "if" statement
      * @return an instance of JCTree.JCIF
      */
-    public JCTree.JCStatement createIfStatement(JCTree.JCExpression condition,
+    public JCTree.JCIf createIfStatement(JCTree.JCExpression condition,
                                                 JCTree.JCStatement thenPart,
                                                 JCTree.JCStatement elsePart) {
         return treeMaker.If(condition, thenPart, elsePart);
     }
 
-    public JCTree.JCStatement createForLoopStatement(List<JCTree.JCStatement> init,
-                                                   JCTree.JCExpression condition,
-                                                   List<JCTree.JCExpressionStatement> step,
-                                                   JCTree.JCStatement body) {
-        return treeMaker.ForLoop(init, condition, step, body);
+    public JCTree.JCCatch createCatch(JCTree.JCVariableDecl exception, JCTree.JCBlock body) {
+        return treeMaker.Catch(exception, body);
+    }
+
+    public JCTree.JCTry createTryStatement(JCTree.JCBlock tryBody, List<JCTree.JCCatch> catchers, JCTree.JCBlock finalizerBody) {
+        return treeMaker.Try(tryBody, catchers, finalizerBody);
+    }
+
+    public JCTree.JCSynchronized createSynchronizedStatement(JCTree.JCExpression lock, JCTree.JCBlock body) {
+        return treeMaker.Synchronized(lock, body);
+    }
+
+    public JCTree.JCReturn createReturnStatement(JCTree.JCExpression returnedExpr) {
+        return treeMaker.Return(returnedExpr);
     }
 
     public JCTree.JCExpressionStatement createBinaryStatement(JCTree.Tag opTag, JCTree.JCExpression lhs, JCTree.JCExpression rhs) {
@@ -264,7 +296,7 @@ public class ASTUtils {
         return elems;
     }
 
-    public JCTree.JCStatement createNewAssignStatement(String assignName,
+    public JCTree.JCVariableDecl createNewAssignStatement(String assignName,
                                                        String newClassName,
                                                        JCTree.JCExpression encl,
                                                        List<JCTree.JCExpression> typeArgs,
@@ -279,7 +311,7 @@ public class ASTUtils {
     }
 
     @SafeVarargs
-    public final JCTree.JCBlock createStatementBlock(List<JCTree.JCStatement> statementsList, List<JCTree.JCStatement>... statementsLists) {
+    public final JCTree.JCBlock createBlock(List<JCTree.JCStatement> statementsList, List<JCTree.JCStatement>... statementsLists) {
         JCTree.JCBlock result = treeMaker.Block(0, statementsList);
         for (List<JCTree.JCStatement> list : statementsLists) {
             result = treeMaker.Block(0, result.getStatements().appendList(list));

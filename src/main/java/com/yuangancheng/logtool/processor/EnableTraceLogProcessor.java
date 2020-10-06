@@ -3,6 +3,8 @@ package com.yuangancheng.logtool.processor;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.jvm.ClassReader;
+import com.sun.tools.javac.main.JavaCompiler;
+import com.sun.tools.javac.parser.ParserFactory;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -19,6 +21,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author: Gancheng Yuan
@@ -34,6 +37,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     private Names names;
     private Symtab symtab;
     private ClassReader classReader;
+    private JavaCompiler javaCompiler;
+    private ParserFactory parserFactory;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -45,6 +50,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         this.names = Names.instance(context);
         this.symtab = Symtab.instance(context);
         this.classReader = ClassReader.instance(context);
+        this.javaCompiler = JavaCompiler.instance(context);
+        parserFactory = ParserFactory.instance(context);
     }
 
     @Override
@@ -56,16 +63,20 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
             JCTree classTree = trees.getTree(element);
             List<? extends Element> memberList = element.getEnclosedElements();
             List<Object> list = processClassMembers(enableTraceLog, memberList);
-            EnableTraceLogTranslator classTranslator = new EnableTraceLogTranslator(
-                    messager,
-                    treeMaker,
-                    names,
-                    symtab,
-                    classReader,
-                    (Map<String, Object>)list.get(0),
-                    (ArrayList<String>)list.get(1)
-            );
-            classTree.accept(classTranslator);
+            if(((ArrayList<String>)list.get(1)).size() > 0) {
+                EnableTraceLogTranslator classTranslator = new EnableTraceLogTranslator(
+                        messager,
+                        treeMaker,
+                        names,
+                        symtab,
+                        classReader,
+                        (Map<String, Object>)list.get(0),
+                        (ArrayList<String>)list.get(1),
+                        javaCompiler,
+                        parserFactory
+                );
+                classTree.accept(classTranslator);
+            }
         }
         return true;
     }

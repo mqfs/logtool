@@ -56,6 +56,16 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        /*
+          Important!!! This chunk of code is added for Intellij IDEA click 'Run Application' button bug (infinite loop of processing annotations during compilation)
+         */
+        String isCompletedValue = System.getProperty("com.yuangancheng.logtool.enable-trace-log.is-completed");
+        if(isCompletedValue == null) {
+            System.setProperty("com.yuangancheng.logtool.enable-trace-log.is-completed", "1");
+        }else{
+            return true;
+        }
+
         Set<? extends Element> elementSet = roundEnv.getElementsAnnotatedWith(EnableTraceLog.class);
         for(Element element : elementSet) {
             EnableTraceLog enableTraceLog = element.getAnnotation(EnableTraceLog.class);

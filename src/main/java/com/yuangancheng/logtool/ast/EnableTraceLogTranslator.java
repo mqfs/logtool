@@ -226,7 +226,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             );
         }
         return astUtils.createMethodDecl(
-                Flags.PRIVATE | Flags.FINAL,
+                Flags.PRIVATE,
                 List.nil(),
                 "void",
                 null,
@@ -272,7 +272,10 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                                     astUtils.createParensExpression(
                                             astUtils.createTypeCastExpression(
                                                     astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                                                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
+                                                    astUtils.createMethodInvocation1(
+                                                            astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
+                                                            "getRequestAttributes",
+                                                            new ArrayList<>())
                                             )
                                     ),
                                     "getRequest",
@@ -439,7 +442,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             );
         }
         return astUtils.createMethodDecl(
-                Flags.PRIVATE | Flags.FINAL,
+                Flags.PRIVATE,
                 List.nil(),
                 "void",
                 null,
@@ -482,7 +485,10 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                                     astUtils.createParensExpression(
                                             astUtils.createTypeCastExpression(
                                                     astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                                                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
+                                                    astUtils.createMethodInvocation1(
+                                                            astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
+                                                            "getRequestAttributes",
+                                                            new ArrayList<>())
                                             )
                                     ),
                                     "getRequest",
@@ -734,7 +740,10 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                                     astUtils.createParensExpression(
                                             astUtils.createTypeCastExpression(
                                                     astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                                                    astUtils.createMethodInvocation0("RequestContextHolder.getRequestAttributes", new ArrayList<>())
+                                                    astUtils.createMethodInvocation1(
+                                                            astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
+                                                            "getRequestAttributes",
+                                                            new ArrayList<>())
                                             )
                                     ),
                                     "getRequest",

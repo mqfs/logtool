@@ -389,7 +389,7 @@ public class ASTUtils {
     /**
      * Create a complete field access
      *
-     * @param completeFieldName complete name of field (e.g. "System.out.println")
+     * @param completeFieldName complete name of field (e.g. "System.out.println" or "java.lang.System")
      * @return an instance of JCTree.JCFieldAccess
      */
     public JCTree.JCExpression createCompleteFieldAccess(String completeFieldName) {

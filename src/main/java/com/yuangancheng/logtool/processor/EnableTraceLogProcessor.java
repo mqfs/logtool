@@ -3,8 +3,6 @@ package com.yuangancheng.logtool.processor;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.jvm.ClassReader;
-import com.sun.tools.javac.main.JavaCompiler;
-import com.sun.tools.javac.parser.ParserFactory;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -21,7 +19,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * @author: Gancheng Yuan
@@ -37,8 +34,6 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     private Names names;
     private Symtab symtab;
     private ClassReader classReader;
-    private JavaCompiler javaCompiler;
-    private ParserFactory parserFactory;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -50,22 +45,10 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         this.names = Names.instance(context);
         this.symtab = Symtab.instance(context);
         this.classReader = ClassReader.instance(context);
-        this.javaCompiler = JavaCompiler.instance(context);
-        parserFactory = ParserFactory.instance(context);
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        /*
-          Important!!! This chunk of code is added for Intellij IDEA click 'Run Application' button bug (infinite loop of processing annotations during compilation)
-         */
-        String isCompletedValue = System.getProperty("com.yuangancheng.logtool.enable-trace-log.is-completed");
-        if(isCompletedValue == null) {
-            System.setProperty("com.yuangancheng.logtool.enable-trace-log.is-completed", "1");
-        }else{
-            return true;
-        }
-
         Set<? extends Element> elementSet = roundEnv.getElementsAnnotatedWith(EnableTraceLog.class);
         for(Element element : elementSet) {
             EnableTraceLog enableTraceLog = element.getAnnotation(EnableTraceLog.class);
@@ -82,8 +65,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                         classReader,
                         (Map<String, Object>)list.get(0),
                         (ArrayList<String>)list.get(1),
-                        javaCompiler,
-                        parserFactory
+                        trees.getPath(element).getCompilationUnit().getLineMap()
                 );
                 classTree.accept(classTranslator);
             }

@@ -1,13 +1,9 @@
 package com.yuangancheng.logtool.ast;
 
-import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.LineMap;
 import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.jvm.ClassReader;
-import com.sun.tools.javac.main.JavaCompiler;
-import com.sun.tools.javac.parser.JavacParser;
-import com.sun.tools.javac.parser.ParserFactory;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -32,8 +28,6 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private final TreeMaker treeMaker;
     private final Map<String, Object> enableTraceLogMembersMap;
     private final ArrayList<String> methodListWithAnnotation;
-    private final JavaCompiler javaCompiler;
-    private final ParserFactory parserFactory;
     private JCTree.JCClassDecl classDecl;
     private final ArrayList<Integer> endPosition;
     private final ASTUtils astUtils;
@@ -44,13 +38,12 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private Set<String> enableMethodLevelSwitchSet;
     private LineMap lineMap;
 
-    public EnableTraceLogTranslator(Messager messager, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation, JavaCompiler javaCompiler, ParserFactory parserFactory) {
+    public EnableTraceLogTranslator(Messager messager, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation, LineMap lineMap) {
         this.messager = messager;
         this.treeMaker = treeMaker;
         this.enableTraceLogMembersMap = enableTraceLogMembersMap;
         this.methodListWithAnnotation = methodListWithAnnotation;
-        this.javaCompiler = javaCompiler;
-        this.parserFactory = parserFactory;
+        this.lineMap = lineMap;
         this.classDecl = null;
         endPosition = new ArrayList<>();
         astUtils = new ASTUtils(names, symtab, classReader, treeMaker);
@@ -67,12 +60,6 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         }
 
         classDecl = jcClassDecl;
-
-        /* generate the corresponding line map */
-        Symbol.ClassSymbol classSymbol = (Symbol.ClassSymbol)TreeInfo.symbolFor(jcClassDecl);
-        JavacParser parser = parserFactory.newParser(javaCompiler.readSource(classSymbol.sourcefile), true, true, true);
-        CompilationUnitTree compilationUnitTree = parser.parseCompilationUnit();
-        lineMap = compilationUnitTree.getLineMap();
 
         /*
           Important!!! Currently need to set the default pos value (negative one) of treeMaker to any valid pos value (non negative one) in current jcClassDecl.

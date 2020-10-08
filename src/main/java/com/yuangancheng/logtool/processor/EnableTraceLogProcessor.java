@@ -24,7 +24,7 @@ import java.util.*;
  * @author: Gancheng Yuan
  * @date: 2020/9/15 18:20
  */
-@SupportedAnnotationTypes("com.yuangancheng.logtool.annotation.EnableTraceLog")
+@SupportedAnnotationTypes("com.yuangancheng.logtool.annotation.*")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class EnableTraceLogProcessor extends AbstractProcessor {
 
@@ -34,6 +34,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     private Names names;
     private Symtab symtab;
     private ClassReader classReader;
+    private int dummy = 0;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -49,10 +50,26 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+
+        /* Important!!! Currently count the loops for detecting unknown error to avoid infinite loop (IntelliJ IDEA 'build project' option) */
+        if(dummy == 0) {
+            String count = System.getProperty("com.yuangancheng.logtool.dummy");
+            if(count == null) {
+                System.setProperty("com.yuangancheng.logtool.dummy", "1");
+            }else{
+                if(Integer.parseInt(count) > 2) {
+                    messager.printMessage(Diagnostic.Kind.WARNING, "Encountered an infinite annotation processing loop. Please use 'Rebuild Project' option instead of 'Build Project' in IntelliJ IDEA to enable @TraceLog.");
+                    return true;
+                }
+                System.setProperty("com.yuangancheng.logtool.dummy", String.valueOf(Integer.parseInt(count) + 1));
+            }
+            dummy++;
+        }
+
         Set<? extends Element> elementSet = roundEnv.getElementsAnnotatedWith(EnableTraceLog.class);
         for(Element element : elementSet) {
             EnableTraceLog enableTraceLog = element.getAnnotation(EnableTraceLog.class);
-            messager.printMessage(Diagnostic.Kind.NOTE, UUID.randomUUID().toString() + "-" + element.toString());
+            messager.printMessage(Diagnostic.Kind.NOTE, "TraceLog: modifying class: " + element.toString());
             JCTree classTree = trees.getTree(element);
             List<? extends Element> memberList = element.getEnclosedElements();
             List<Object> list = processClassMembers(enableTraceLog, memberList);

@@ -10,7 +10,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.SOURCE)
 @Documented
 public @interface EnableTraceLog {
-    String loggerName() default "log";
     String reqIdName() default "";
     boolean enableClassLevelSwitch() default false;
     String switchKey() default "";

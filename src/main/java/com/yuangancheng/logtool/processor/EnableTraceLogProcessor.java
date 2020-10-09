@@ -24,8 +24,6 @@ import java.util.*;
  * @author: Gancheng Yuan
  * @date: 2020/9/15 18:20
  */
-@SupportedAnnotationTypes("com.yuangancheng.logtool.annotation.*")
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class EnableTraceLogProcessor extends AbstractProcessor {
 
     private Messager messager;
@@ -49,9 +47,28 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     }
 
     @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        return new HashSet<String>() {
+            {
+                add("com.yuangancheng.logtool.annotation.EnableTraceLog");
+            }
+        };
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.values()[SourceVersion.values().length - 1];
+    }
+
+    @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-        /* Important!!! Currently count the loops for detecting unknown error to avoid infinite loop (IntelliJ IDEA 'build project' option) */
+        /* Check if the processing environment has been initialized */
+        if(!isInitialized()) {
+            messager.printMessage(Diagnostic.Kind.ERROR, "The logtool's annotation processor has not been initialized. Please try it again.");
+        }
+
+        /* Important!!! Currently count the loops for detecting unknown error to avoid infinite loop which occurs sometime (IntelliJ IDEA 'build project' option) */
         if(dummy == 0) {
             String count = System.getProperty("com.yuangancheng.logtool.dummy");
             if(count == null) {
@@ -104,7 +121,6 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         List<String> methodListWithAnnotation = new ArrayList<>();
 
         //Generate key-value pair map
-        enableTraceLogMembersMap.put(ConstantsEnum.LOGGER_NAME.getValue(), enableTraceLog.loggerName());
         enableTraceLogMembersMap.put(ConstantsEnum.REQ_ID_NAME.getValue(), enableTraceLog.reqIdName());
         enableTraceLogMembersMap.put(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue(), enableTraceLog.enableClassLevelSwitch());
         enableTraceLogMembersMap.put(ConstantsEnum.SWITCH_KEY.getValue(), enableTraceLog.switchKey());

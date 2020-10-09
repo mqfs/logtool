@@ -5,7 +5,6 @@ package com.yuangancheng.logtool.enums;
  * @date: 2020/9/17 17:11
  */
 public enum ConstantsEnum {
-    LOGGER_NAME("loggerName"),
     REQ_ID_NAME("reqIdName"),
     ENABLE_CLASS_LEVEL_SWITCH("enableClassLevelSwitch"),
     ENABLE_METHOD_LEVEL_SWITCH("enableMethodLevelSwitch"),

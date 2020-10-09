@@ -95,7 +95,9 @@ public class ASTUtils {
         Name varName = names.fromString(name);
         JCTree.JCExpression varTypeExpression;
         if(!varType.contains("[]")) {
-            varTypeExpression = baseTypeTagMap.containsKey(varType) ? treeMaker.TypeIdent(baseTypeTagMap.get(varType)) : treeMaker.Ident(names.fromString(varType));
+            varTypeExpression = baseTypeTagMap.containsKey(varType) ?
+                    treeMaker.TypeIdent(baseTypeTagMap.get(varType)) :
+                    createCompleteFieldAccess(varType);
         }else{
             int cnt = 0;
             for(int i = 0; i < varType.length(); i++) {

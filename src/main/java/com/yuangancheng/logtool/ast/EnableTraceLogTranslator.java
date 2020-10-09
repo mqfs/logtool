@@ -145,16 +145,14 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             super.visitMethodDef(jcMethodDecl);
             return;
         }
+        /* insert request-id variable declaration */
+        insertReqIdDeclaration(jcMethodDecl);
 
         /* insert log method parameters part */
-        if(jcMethodDecl.getParameters().size() > 0) {
-            insertLogMethodParamsPart(jcMethodDecl);
-        }
+        insertLogMethodParamsPart(jcMethodDecl);
 
         /* insert method invocation to log-method-result-func */
-        if(!(jcMethodDecl.getReturnType().type instanceof Type.JCVoidType)) {
-            insertLogMethodResultFuncInvocationStatement(jcMethodDecl);
-        }
+        insertLogMethodResultFuncInvocationStatement(jcMethodDecl);
 
         super.visitMethodDef(jcMethodDecl);
     }
@@ -179,12 +177,58 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     }
                 }
         );
+
+        /* the initial value '1' makes switch keys to be compatible when using keyword 'new' to build an instance of class */
         return astUtils.createVarDecl(
                 Flags.PRIVATE,
                 List.of(valueAnnotation),
                 level.getValue() + UUID.randomUUID().toString().replace("-", ""),
                 keyType,
                 astUtils.createLiteral(1)
+        );
+    }
+
+    private void insertReqIdDeclaration(JCTree.JCMethodDecl methodDecl) {
+        if(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
+            return;
+        }
+        JCTree.JCStatement headerStringAssignStatement = null;
+        JCTree.JCVariableDecl headerStringDecl = astUtils.createVarDecl(
+                0,
+                List.nil(),
+                "reqId" + UUID.randomUUID().toString().replace("-", ""),
+                "String",
+                astUtils.createLiteral("")
+        );
+        curReqIdName = headerStringDecl.getName().toString();
+        headerStringAssignStatement = astUtils.createAssignStatement(
+                astUtils.createIdent(headerStringDecl.getName().toString()),
+                astUtils.createMethodInvocation1(
+                        astUtils.createMethodInvocation1(
+                                astUtils.createParensExpression(
+                                        astUtils.createTypeCastExpression(
+                                                astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
+                                                astUtils.createMethodInvocation1(
+                                                        astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
+                                                        "getRequestAttributes",
+                                                        new ArrayList<>())
+                                        )
+                                ),
+                                "getRequest",
+                                new ArrayList<>()
+                        ),
+                        "getHeader",
+                        new ArrayList<JCTree.JCExpression>() {
+                            {
+                                add(astUtils.createLiteral(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue())));
+                            }
+                        }
+                )
+        );
+        methodDecl.body = astUtils.createBlock(
+                List.of(headerStringDecl),
+                headerStringAssignStatement == null ? List.nil() : List.of(headerStringAssignStatement),
+                methodDecl.body.getStatements()
         );
     }
 
@@ -195,6 +239,9 @@ public class EnableTraceLogTranslator extends TreeTranslator {
      * @return
      */
     private void insertLogMethodParamsPart(JCTree.JCMethodDecl methodDecl) {
+        if(methodDecl.getParameters().size() == 0) {
+            return;
+        }
         String prefix = methodDecl.getName().toString() + "{in: {";
         String colonSpace = ": ";
         String comma = ", ";
@@ -202,41 +249,6 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         String braces = "{}";
         String logger = (String)enableTraceLogMembersMap.get(ConstantsEnum.LOGGER_NAME.getValue());
         StringBuilder preparedBraces = new StringBuilder();
-        JCTree.JCStatement headerStringAssignStatement = null;
-        JCTree.JCVariableDecl headerStringDecl = astUtils.createVarDecl(
-                0,
-                List.nil(),
-                "reqId" + UUID.randomUUID().toString().replace("-", ""),
-                "String",
-                astUtils.createLiteral("")
-        );
-        curReqIdName = headerStringDecl.getName().toString();
-        if(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
-            headerStringAssignStatement = astUtils.createAssignStatement(
-                    astUtils.createIdent(headerStringDecl.getName().toString()),
-                    astUtils.createMethodInvocation1(
-                            astUtils.createMethodInvocation1(
-                                    astUtils.createParensExpression(
-                                            astUtils.createTypeCastExpression(
-                                                    astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                                                    astUtils.createMethodInvocation1(
-                                                            astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
-                                                            "getRequestAttributes",
-                                                            new ArrayList<>())
-                                            )
-                                    ),
-                                    "getRequest",
-                                    new ArrayList<>()
-                            ),
-                            "getHeader",
-                            new ArrayList<JCTree.JCExpression>() {
-                                {
-                                    add(astUtils.createLiteral(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue())));
-                                }
-                            }
-                    )
-            );
-        }
         preparedBraces.append(prefix);
         methodDecl.getParameters().forEach(jcVariableDecl -> {
             preparedBraces.append(jcVariableDecl.getName().toString())
@@ -279,7 +291,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 enableMethodLevelSwitchSet.contains(methodDecl.getName().toString()) ?
                         astUtils.createBinaryExpression(astUtils.createIdent(methodLevelSwitchKeyMap.get(methodDecl.getName().toString())), JCTree.Tag.EQ, astUtils.createLiteral(1)) :
                         astUtils.createLiteral(true),
-                astUtils.createBlock(headerStringAssignStatement == null ? List.nil() : List.of(headerStringAssignStatement), List.of(logMethodParamsStatement)),
+                astUtils.createBlock(List.of(logMethodParamsStatement)),
                 null
         );
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
@@ -289,10 +301,13 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     null
             );
         }
-        methodDecl.body = astUtils.createBlock(List.of(headerStringDecl, switchIfStatement), methodDecl.body.getStatements());
+        methodDecl.body = astUtils.createBlock(List.of(switchIfStatement), methodDecl.body.getStatements());
     }
 
     private void insertLogMethodResultFuncInvocationStatement(JCTree.JCMethodDecl methodDecl) {
+        if(methodDecl.getReturnType().type instanceof Type.JCVoidType) {
+            return;
+        }
         methodDecl.body = processJCBlock(methodDecl.getBody(), methodDecl);
     }
 

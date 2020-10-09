@@ -145,6 +145,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             super.visitMethodDef(jcMethodDecl);
             return;
         }
+
         /* insert request-id variable declaration */
         insertReqIdDeclaration(jcMethodDecl);
 
@@ -152,7 +153,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         insertLogMethodParamsPart(jcMethodDecl);
 
         /* insert method invocation to log-method-result-func */
-        insertLogMethodResultFuncInvocationStatement(jcMethodDecl);
+        insertLogMethodResultPart(jcMethodDecl);
 
         super.visitMethodDef(jcMethodDecl);
     }
@@ -192,7 +193,6 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         if(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
             return;
         }
-        JCTree.JCStatement headerStringAssignStatement = null;
         JCTree.JCVariableDecl headerStringDecl = astUtils.createVarDecl(
                 0,
                 List.nil(),
@@ -201,33 +201,8 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 astUtils.createLiteral("")
         );
         curReqIdName = headerStringDecl.getName().toString();
-        headerStringAssignStatement = astUtils.createAssignStatement(
-                astUtils.createIdent(headerStringDecl.getName().toString()),
-                astUtils.createMethodInvocation1(
-                        astUtils.createMethodInvocation1(
-                                astUtils.createParensExpression(
-                                        astUtils.createTypeCastExpression(
-                                                astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
-                                                astUtils.createMethodInvocation1(
-                                                        astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
-                                                        "getRequestAttributes",
-                                                        new ArrayList<>())
-                                        )
-                                ),
-                                "getRequest",
-                                new ArrayList<>()
-                        ),
-                        "getHeader",
-                        new ArrayList<JCTree.JCExpression>() {
-                            {
-                                add(astUtils.createLiteral(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue())));
-                            }
-                        }
-                )
-        );
         methodDecl.body = astUtils.createBlock(
                 List.of(headerStringDecl),
-                headerStringAssignStatement == null ? List.nil() : List.of(headerStringAssignStatement),
                 methodDecl.body.getStatements()
         );
     }
@@ -239,7 +214,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
      * @return
      */
     private void insertLogMethodParamsPart(JCTree.JCMethodDecl methodDecl) {
-        if(methodDecl.getParameters().size() == 0) {
+        if(methodDecl.getParameters().size() == 0 && enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
             return;
         }
         String prefix = methodDecl.getName().toString() + "{in: {";
@@ -258,40 +233,73 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         });
         preparedBraces.delete(preparedBraces.length() - 2, preparedBraces.length());
         preparedBraces.append(suffix);
-        JCTree.JCStatement logMethodParamsStatement = astUtils.createMethodInvocationExpressionStatement(
-                logger + ".info",
-                new ArrayList<JCTree.JCExpression>() {
-                    {
-                        add(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("") ?
-                                astUtils.createBinaryExpression(astUtils.createIdent(curReqIdName), JCTree.Tag.PLUS, astUtils.createBinaryExpression(astUtils.createLiteral(":"), JCTree.Tag.PLUS, astUtils.createLiteral(preparedBraces.toString()))) :
-                                astUtils.createLiteral(preparedBraces.toString())
-                        );
-                        addAll(
-                                methodDecl.getParameters().stream()
-                                        .map(jcVariableDecl -> {
-                                            if(jcVariableDecl.getType() instanceof JCTree.JCPrimitiveTypeTree) {
-                                                return astUtils.createIdent(jcVariableDecl.getName().toString());
-                                            }else{
-                                                return astUtils.createMethodInvocation0(
-                                                        "String.valueOf",
-                                                        new ArrayList<JCTree.JCExpression>() {
-                                                            {
-                                                                add(astUtils.createIdent(jcVariableDecl.getName().toString()));
+        JCTree.JCStatement logMethodParamsStatement = null;
+        if(methodDecl.getParameters().size() > 0) {
+            logMethodParamsStatement = astUtils.createMethodInvocationExpressionStatement(
+                    logger + ".info",
+                    new ArrayList<JCTree.JCExpression>() {
+                        {
+                            add(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("") ?
+                                    astUtils.createBinaryExpression(astUtils.createIdent(curReqIdName), JCTree.Tag.PLUS, astUtils.createBinaryExpression(astUtils.createLiteral(":"), JCTree.Tag.PLUS, astUtils.createLiteral(preparedBraces.toString()))) :
+                                    astUtils.createLiteral(preparedBraces.toString())
+                            );
+                            addAll(
+                                    methodDecl.getParameters().stream()
+                                            .map(jcVariableDecl -> {
+                                                if(jcVariableDecl.getType() instanceof JCTree.JCPrimitiveTypeTree) {
+                                                    return astUtils.createIdent(jcVariableDecl.getName().toString());
+                                                }else{
+                                                    return astUtils.createMethodInvocation0(
+                                                            "String.valueOf",
+                                                            new ArrayList<JCTree.JCExpression>() {
+                                                                {
+                                                                    add(astUtils.createIdent(jcVariableDecl.getName().toString()));
+                                                                }
                                                             }
-                                                        }
-                                                );
-                                            }
-                                        })
-                                        .collect(Collectors.toList())
-                        );
+                                                    );
+                                                }
+                                            })
+                                            .collect(Collectors.toList())
+                            );
+                        }
                     }
-                }
-        );
+            );
+        }
+        JCTree.JCStatement headerStringAssignStatement = null;
+        if(!enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("")) {
+            headerStringAssignStatement = astUtils.createAssignStatement(
+                    astUtils.createIdent(curReqIdName),
+                    astUtils.createMethodInvocation1(
+                            astUtils.createMethodInvocation1(
+                                    astUtils.createParensExpression(
+                                            astUtils.createTypeCastExpression(
+                                                    astUtils.getClassType("org.springframework.web.context.request.ServletRequestAttributes"),
+                                                    astUtils.createMethodInvocation1(
+                                                            astUtils.createCompleteFieldAccess("org.springframework.web.context.request.RequestContextHolder"),
+                                                            "getRequestAttributes",
+                                                            new ArrayList<>())
+                                            )
+                                    ),
+                                    "getRequest",
+                                    new ArrayList<>()
+                            ),
+                            "getHeader",
+                            new ArrayList<JCTree.JCExpression>() {
+                                {
+                                    add(astUtils.createLiteral(enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue())));
+                                }
+                            }
+                    )
+            );
+        }
         JCTree.JCStatement switchIfStatement = astUtils.createIfStatement(
                 enableMethodLevelSwitchSet.contains(methodDecl.getName().toString()) ?
                         astUtils.createBinaryExpression(astUtils.createIdent(methodLevelSwitchKeyMap.get(methodDecl.getName().toString())), JCTree.Tag.EQ, astUtils.createLiteral(1)) :
                         astUtils.createLiteral(true),
-                astUtils.createBlock(List.of(logMethodParamsStatement)),
+                astUtils.createBlock(
+                        enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("") ? List.nil() : List.of(headerStringAssignStatement),
+                        methodDecl.getParameters().size() == 0 ? List.nil() : List.of(logMethodParamsStatement)
+                ),
                 null
         );
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
@@ -301,10 +309,14 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     null
             );
         }
-        methodDecl.body = astUtils.createBlock(List.of(switchIfStatement), methodDecl.body.getStatements());
+        methodDecl.body = astUtils.createBlock(
+                enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("") ? List.nil() : List.of(methodDecl.body.getStatements().get(0)),
+                List.of(switchIfStatement),
+                enableTraceLogMembersMap.get(ConstantsEnum.REQ_ID_NAME.getValue()).equals("") ? methodDecl.body.getStatements() : List.from(methodDecl.body.getStatements().subList(1, methodDecl.body.getStatements().size()))
+        );
     }
 
-    private void insertLogMethodResultFuncInvocationStatement(JCTree.JCMethodDecl methodDecl) {
+    private void insertLogMethodResultPart(JCTree.JCMethodDecl methodDecl) {
         if(methodDecl.getReturnType().type instanceof Type.JCVoidType) {
             return;
         }
@@ -525,7 +537,25 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                     null
             );
         }
+        JCTree.JCStatement oldReturnStatement = null;
+        if(newReturn != null && (enableMethodLevelSwitchSet.contains(methodDecl.getName().toString()) || (Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue()))) {
+            JCTree.JCExpression oldReturnCond = astUtils.createBinaryExpression(
+                    enableMethodLevelSwitchSet.contains(methodDecl.getName().toString()) ?
+                            astUtils.createBinaryExpression(astUtils.createIdent(methodLevelSwitchKeyMap.get(methodDecl.getName().toString())), JCTree.Tag.EQ, astUtils.createLiteral(0)) :
+                            astUtils.createLiteral(false),
+                    JCTree.Tag.OR,
+                    (Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue()) ?
+                            astUtils.createBinaryExpression(astUtils.createIdent(classLevelSwitchKey), JCTree.Tag.EQ, astUtils.createLiteral(0)) :
+                            astUtils.createLiteral(false)
+            );
+            oldReturnStatement = astUtils.createIfStatement(
+                    oldReturnCond,
+                    jcReturn,
+                    null
+            );
+        }
         return astUtils.createBlock(
+                oldReturnStatement == null ? List.nil() : List.of(oldReturnStatement),
                 methodResultVarDecl == null ? List.nil() : List.of(logReturnLineNumberStatement, methodResultVarDecl),
                 List.of(switchIfStatement),
                 newReturn == null ? List.of(jcReturn) : List.of(newReturn)

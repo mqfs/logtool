@@ -68,7 +68,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
             messager.printMessage(Diagnostic.Kind.ERROR, "The logtool's annotation processor has not been initialized. Please try it again.");
         }
 
-        /* Important!!! Currently count the loops for detecting unknown error to avoid infinite loop which occurs sometime (IntelliJ IDEA 'build project' option) */
+        /* Important!!! Currently count the loops for detecting unknown error to avoid infinite loop which occurs sometimes in Windows 7 (IntelliJ IDEA 'build project' option) */
         if(dummy == 0) {
             String count = System.getProperty("com.yuangancheng.logtool.dummy");
             if(count == null) {

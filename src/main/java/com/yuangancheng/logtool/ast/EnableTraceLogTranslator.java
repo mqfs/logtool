@@ -66,10 +66,16 @@ public class EnableTraceLogTranslator extends TreeTranslator {
          */
         this.treeMaker.pos = jcClassDecl.pos;
 
+        boolean isWarningPrinted = false;
+
         //Check if enable the open-close switch
         if((Boolean)enableTraceLogMembersMap.get(ConstantsEnum.ENABLE_CLASS_LEVEL_SWITCH.getValue())) {
             if(enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()).equals("")) {
                 messager.printMessage(Diagnostic.Kind.ERROR, "Error: " + jcClassDecl.sym.flatname.toString() + "@EnableTraceLog: Please specify a switch key when enable class-switch-key.");
+            }
+            if(!isWarningPrinted && classDecl.sym.owner instanceof Symbol.ClassSymbol) {
+                messager.printMessage(Diagnostic.Kind.WARNING, "Warning: " + jcClassDecl.sym.flatname.toString() + ": If you want to make switch-key truly effective in Spring application, please use its instance in IOC container instead of using keyword 'new'.");
+                isWarningPrinted = true;
             }
             JCTree.JCVariableDecl classLevelSwitchKeyDecl = generateSwitchKey(
                     (String)enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()),
@@ -130,6 +136,10 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                         methodSwitchKey = (String)((JCTree.JCLiteral)assign.getExpression()).getValue();
                         break;
                     }
+                }
+                if(!isWarningPrinted && classDecl.sym.owner instanceof Symbol.ClassSymbol) {
+                    messager.printMessage(Diagnostic.Kind.WARNING, "Warning: " + jcClassDecl.sym.flatname.toString() + ": If you want to make switch-key truly effective in Spring application, please use its instance in IOC container instead of using keyword 'new'.");
+                    isWarningPrinted = true;
                 }
                 methodSwitchVariableDecl = generateSwitchKey(
                         methodSwitchKey,

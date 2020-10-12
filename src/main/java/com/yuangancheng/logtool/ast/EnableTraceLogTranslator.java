@@ -73,7 +73,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             if(enableTraceLogMembersMap.get(ConstantsEnum.SWITCH_KEY.getValue()).equals("")) {
                 messager.printMessage(Diagnostic.Kind.ERROR, "Error: " + jcClassDecl.sym.flatname.toString() + "@EnableTraceLog: Please specify a switch key when enable class-switch-key.");
             }
-            if(!isWarningPrinted && classDecl.sym.owner instanceof Symbol.ClassSymbol) {
+            if(classDecl.sym.owner instanceof Symbol.ClassSymbol) {
                 messager.printMessage(Diagnostic.Kind.WARNING, "Warning: " + jcClassDecl.sym.flatname.toString() + ": If you want to make switch-key truly effective in Spring application, please use its instance in IOC container instead of using keyword 'new'.");
                 isWarningPrinted = true;
             }

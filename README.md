@@ -12,5 +12,5 @@ Logtool is a Java library that provides facilities to log each method's paramete
 2. Support generic methods and generic parameters
 3. Support log within multi-threads
 4. Support anonymous class
-~~5. Support print line number of return statement before printing its result~~
+5. ~~Support print line number of return statement before printing its result~~
 6. Normalize line-number-table attribute of modified classes

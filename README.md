@@ -31,7 +31,7 @@ Logtool is a Java library that provides facilities to log each method's paramete
 For example, there is a class and an affiliated method.
 ```
 @EnableTraceLog
-public class Dog implements HelloService {
+public class Dog {
     ...
     @TraceLog
     private int bark(int frequency) {

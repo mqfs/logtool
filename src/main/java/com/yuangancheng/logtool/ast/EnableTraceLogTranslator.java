@@ -352,6 +352,9 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     }
 
     private JCTree.JCBlock processJCBlock(JCTree.JCBlock oldBlock, JCTree.JCMethodDecl methodDecl) {
+        if(oldBlock == null) {
+            return null;
+        }
         List<JCTree.JCStatement> newList = List.nil();
         for(JCTree.JCStatement statement : oldBlock.getStatements()) {
             if(statement instanceof JCTree.JCReturn) {

@@ -316,7 +316,7 @@ public class ASTUtils {
     public final JCTree.JCBlock createBlock(List<JCTree.JCStatement> statementsList, List<JCTree.JCStatement>... statementsLists) {
         JCTree.JCBlock result = treeMaker.Block(0, statementsList);
         for (List<JCTree.JCStatement> list : statementsLists) {
-            result = treeMaker.Block(0, result.getStatements().appendList(list));
+            result.stats = result.stats.appendList(list);
         }
         return result;
     }

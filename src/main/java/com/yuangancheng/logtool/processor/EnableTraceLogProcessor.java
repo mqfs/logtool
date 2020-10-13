@@ -107,7 +107,6 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
         return true;
     }
 
-
     /**
      * Generate annotation's key-value pair map and methods' name with TraceLog annotation
      *

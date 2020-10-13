@@ -14,3 +14,32 @@ Logtool is a Java library that provides facilities to log each method's paramete
 4. Support anonymous class
 5. ~~Support print line number of return statement before printing its result~~
 6. Normalize line-number-table attribute of modified classes
+
+## Maven
+```
+<dependency>
+    <groupId>com.yuangancheng</groupId>
+    <artifactId>logtool</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+## Quick Start
+1. Annotate a class with `@EnableTraceLog`.
+2. Annotate a method with `@TraceLog` in the previous annotated class.
+
+For example, there is a class and an affiliated method.
+```
+@EnableTraceLog
+public class Dog implements HelloService {
+    ...
+    @TraceLog
+    private int bark(int frequency) {
+        ...
+        return 1;
+        ...
+    }
+    ...
+}
+```
+Then, you will see printed `bark's` parameters and result on the screen when invoke it during runtime.

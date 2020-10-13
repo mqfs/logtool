@@ -42,4 +42,4 @@ public class Dog {
     ...
 }
 ```
-Then, you will see printed `bark's` parameters and result on the screen when invoke it during runtime.
+Then, you will see printed `bark's` parameters and result on the screen when invoke this method during runtime.

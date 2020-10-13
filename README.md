@@ -1,3 +1,5 @@
+<p align="right"><a href="https://github.com/mqfs/logtool/blob/master/README_zh.md">中文版</a></p>
+
 # Logtool
 Logtool is a Java library that provides facilities to log each method's parameters and result within method-invocation-chain in Spring/SpringBoot application. It is based on JSR 269 (Pluggable Annotation Processing API) and javac-relevant api. Just use one annotation on class and another one annotation on its method to avoid redundant log hard code.
 

@@ -61,7 +61,7 @@ Logtool is a Java library that provides facilities to log each method's paramete
     
 * Enable static method-level-switch  
   The _method-level-switch_ has a similiar meaning as _class-level-switch_. However, _method-level-switch_ has a smaller granularity that it can only control the behaviour of a single method at runtime.  
-  Given `@TraceLog(enableMethodLevelSwitch = true, switchKey = "a.b.c")  
+  Given `@TraceLog(enableMethodLevelSwitch = true, switchKey = "a.b.c")`  
   Then, as the former one, you also need to ensure there exists a property pair named `a.b.c=1` or `a.b.c=0` in `application.properties` or `application.yml` file. and the logtool will generate a variable and put into the class. The logtool will control the behaviour of logging part of the method based on the property's value at runtime.  
   
     * Enable dynamic method-level-switch (advanced)  

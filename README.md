@@ -66,3 +66,7 @@ Logtool is a Java library that provides facilities to log each method's paramete
   
     * Enable dynamic method-level-switch (advanced)  
       The usage is the same as the "dynamic class-level-switch".
+
+## Build
+* Import project by Intellij IDEA
+* Add local jdk library (`\lib\tools.jar`) as a project's library

@@ -70,4 +70,4 @@ Logtool is a Java library that provides facilities to log each method's paramete
 
 ## Build
 * Import project by Intellij IDEA
-* Add local jdk library (`\lib\tools.jar`) as a project's library
+* Add local jdk library (`jdk\lib\tools.jar`) as a project's library

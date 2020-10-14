@@ -574,9 +574,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private String generateVariableName(String prefix) {
         while(true) {
             String result = prefix + "_" + prefixNum + "_" + UUID.randomUUID().toString().replace("-", "");
-            if(newVariableNameSet.contains(result)) {
-                continue;
-            }else{
+            if(!newVariableNameSet.contains(result)) {
                 newVariableNameSet.add(result);
                 return result;
             }

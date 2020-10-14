@@ -35,7 +35,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private Map<String, String> methodLevelSwitchKeyMap;
     private Set<String> enableMethodLevelSwitchSet;
     private LineMap lineMap;
-    private String prefixNum;
+    private final String prefixNum;
     private Set<String> newVariableNameSet;
     private String loggerName;
     private String curReqIdName;
@@ -577,6 +577,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
             if(newVariableNameSet.contains(result)) {
                 continue;
             }else{
+                newVariableNameSet.add(result);
                 return result;
             }
         }

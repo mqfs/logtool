@@ -32,11 +32,11 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private final ArrayList<Integer> endPosition;
     private final ASTUtils astUtils;
     private String classLevelSwitchKey;
-    private Map<String, String> methodLevelSwitchKeyMap;
-    private Set<String> enableMethodLevelSwitchSet;
-    private LineMap lineMap;
+    private final Map<String, String> methodLevelSwitchKeyMap;
+    private final Set<String> enableMethodLevelSwitchSet;
+    private final LineMap lineMap;
     private final String prefixNum;
-    private Set<String> newVariableNameSet;
+    private final Set<String> newVariableNameSet;
     private String loggerName;
     private String curReqIdName;
 

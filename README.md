@@ -4,10 +4,11 @@
 Logtool is a Java library that provides facilities to log each method's parameters and result within method-invocation-chain in Spring/SpringBoot application. It is based on JSR 269 (Pluggable Annotation Processing API) and javac-relevant api. Just use one annotation on class and another one annotation on its method to avoid redundant log hard code.
 
 ## Features
-1. Currently coordinate with Lombok's `@Data` or `@ToString` annotation
-2. Support Spring Boot or Spring application
-3. Support configurable class/method-level-switch based on properties within application.yml/application.properties (Spring-relevant application) or Apollo in enabling to log contents
-4. Support  getting TraceId from HttpServletRequest Header
+1. Support any access type of method except abstract
+2. Currently coordinate with [Lombok](https://github.com/rzwitserloot/lombok)'s `@Data` or `@ToString` annotation
+3. Support Spring Boot or Spring application
+4. Support configurable class/method-level-switch based on properties within `application.yml/application.properties (Spring-relevant application)` or [Apollo](https://github.com/ctripcorp/apollo) or any similiar configuration manager in enabling to log contents
+5. Support  getting TraceId from HttpServletRequest Header
 
 ## TODO
 1. Support configurable time period for logging upon class/method level
@@ -61,8 +62,12 @@ Logtool is a Java library that provides facilities to log each method's paramete
     
 * Enable static method-level-switch  
   The _method-level-switch_ has a similiar meaning as _class-level-switch_. However, _method-level-switch_ has a smaller granularity that it can only control the behaviour of a single method at runtime.  
-  Given `@TraceLog(enableMethodLevelSwitch = true, switchKey = "a.b.c")  
+  Given `@TraceLog(enableMethodLevelSwitch = true, switchKey = "a.b.c")`  
   Then, as the former one, you also need to ensure there exists a property pair named `a.b.c=1` or `a.b.c=0` in `application.properties` or `application.yml` file. and the logtool will generate a variable and put into the class. The logtool will control the behaviour of logging part of the method based on the property's value at runtime.  
   
     * Enable dynamic method-level-switch (advanced)  
       The usage is the same as the "dynamic class-level-switch".
+
+## Build
+* Import project by Intellij IDEA
+* Add local jdk library (`jdk\lib\tools.jar`) as a project's library

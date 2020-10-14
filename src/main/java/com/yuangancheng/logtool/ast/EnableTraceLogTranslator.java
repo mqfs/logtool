@@ -35,18 +35,22 @@ public class EnableTraceLogTranslator extends TreeTranslator {
     private Map<String, String> methodLevelSwitchKeyMap;
     private Set<String> enableMethodLevelSwitchSet;
     private LineMap lineMap;
+    private String prefixNum;
+    private Set<String> newVariableNameSet;
     private String loggerName;
     private String curReqIdName;
 
-    public EnableTraceLogTranslator(Messager messager, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation, LineMap lineMap) {
+    public EnableTraceLogTranslator(Messager messager, TreeMaker treeMaker, Names names, Symtab symtab, ClassReader classReader, Map<String, Object> enableTraceLogMembersMap, ArrayList<String> methodListWithAnnotation, LineMap lineMap, String prefixNum) {
         this.messager = messager;
         this.treeMaker = treeMaker;
         this.enableTraceLogMembersMap = enableTraceLogMembersMap;
         this.methodListWithAnnotation = methodListWithAnnotation;
         this.lineMap = lineMap;
+        this.prefixNum = prefixNum;
         this.classDecl = null;
         endPosition = new ArrayList<>();
         astUtils = new ASTUtils(names, symtab, classReader, treeMaker);
+        newVariableNameSet = new HashSet<>();
         methodLevelSwitchKeyMap = new HashMap<>();
         enableMethodLevelSwitchSet = new HashSet<>();
     }
@@ -186,7 +190,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         return astUtils.createVarDecl(
                 varFlag,
                 List.nil(),
-                "log" + UUID.randomUUID().toString().replace("-", ""),
+                generateVariableName("log"),
                 "org.slf4j.Logger",
                 astUtils.createMethodInvocation1(
                         astUtils.createCompleteFieldAccess("org.slf4j.LoggerFactory"),
@@ -225,7 +229,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         return astUtils.createVarDecl(
                 Flags.PRIVATE,
                 List.of(valueAnnotation),
-                level.getValue() + UUID.randomUUID().toString().replace("-", ""),
+                generateVariableName(level.getValue()),
                 keyType,
                 astUtils.createLiteral(1)
         );
@@ -238,7 +242,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         JCTree.JCVariableDecl headerStringDecl = astUtils.createVarDecl(
                 0,
                 List.nil(),
-                "reqId" + UUID.randomUUID().toString().replace("-", ""),
+                generateVariableName("reqId"),
                 "String",
                 astUtils.createLiteral("")
         );
@@ -480,7 +484,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
         return astUtils.createVarDecl(
                 0,
                 List.nil(),
-                "varResult" + UUID.randomUUID().toString().replace("-", ""),
+                generateVariableName("varResult"),
                 jcTree.toString(),
                 resultExpr
         );
@@ -565,6 +569,17 @@ public class EnableTraceLogTranslator extends TreeTranslator {
                 jcReturn
         );
         return astUtils.createBlock(List.of(switchIfStatement));
+    }
+
+    private String generateVariableName(String prefix) {
+        while(true) {
+            String result = prefix + "_" + prefixNum + "_" + UUID.randomUUID().toString().replace("-", "");
+            if(newVariableNameSet.contains(result)) {
+                continue;
+            }else{
+                return result;
+            }
+        }
     }
 
     /**

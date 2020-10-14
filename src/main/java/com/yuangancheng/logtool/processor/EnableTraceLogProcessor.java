@@ -33,6 +33,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     private Symtab symtab;
     private ClassReader classReader;
     private int dummy = 0;
+    private int prefixNum = 0;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -99,7 +100,8 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                         classReader,
                         (Map<String, Object>)list.get(0),
                         (ArrayList<String>)list.get(1),
-                        trees.getPath(element).getCompilationUnit().getLineMap()
+                        trees.getPath(element).getCompilationUnit().getLineMap(),
+                        String.valueOf(prefixNum++)
                 );
                 classTree.accept(classTranslator);
             }

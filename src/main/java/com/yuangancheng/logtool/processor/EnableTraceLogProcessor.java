@@ -1,13 +1,8 @@
 package com.yuangancheng.logtool.processor;
 
-import com.sun.source.tree.ClassTree;
-import com.sun.source.util.TreeScanner;
 import com.sun.tools.javac.api.JavacTrees;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.jvm.ClassReader;
-import com.sun.tools.javac.parser.JavacParser;
-import com.sun.tools.javac.parser.ParserFactory;
-import com.sun.tools.javac.processing.JavacFiler;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeMaker;
@@ -23,11 +18,6 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.*;
 
 /**
@@ -60,7 +50,7 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
     public Set<String> getSupportedAnnotationTypes() {
         return new HashSet<String>() {
             {
-                add("com.yuangancheng.logtool.annotation.EnableTraceLog");
+                add("com.yuangancheng.logtool.annotation.*");
             }
         };
     }
@@ -114,39 +104,30 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                 classTree.accept(classTranslator);
             }
         }
-        if(cnt == 0) {
-            InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("templates/Te");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            StringBuilder stringBuilder = new StringBuilder();
-            try {
-                while(reader.ready()) {
-                    stringBuilder.append(reader.readLine());
-                }
-            }catch(Exception e) {
-                e.printStackTrace();
-            }
-            JavacFiler filer = (JavacFiler)processingEnv.getFiler();
-            try {
-                JavaFileObject fileObject = filer.createClassFile("com.yuangancheng.logtool.Te");
-                ParserFactory parserFactory = ParserFactory.instance(((JavacProcessingEnvironment)processingEnv).getContext());
-                JavacParser parser = parserFactory.newParser(stringBuilder.toString(), false, true, true);
-                JCTree.JCCompilationUnit compilationUnitTree = parser.parseCompilationUnit();
-                compilationUnitTree.sourcefile = fileObject;
-                compilationUnitTree.accept(new TreeScanner<Void, Void>() {
-                    @Override
-                    public Void visitClass(ClassTree classTree, Void unused) {
-                        return super.visitClass(classTree, unused);
-                    }
-                }, null);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            cnt++;
+        if(roundEnv.processingOver()) {
+//            InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("templates/Te");
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+//            StringBuilder stringBuilder = new StringBuilder();
+//            try {
+//                while(reader.ready()) {
+//                    stringBuilder.append(reader.readLine());
+//                }
+//            }catch(Exception e) {
+//                e.printStackTrace();
+//            }
+//            JavacFiler filer = (JavacFiler)processingEnv.getFiler();
+//            try {
+//                JavaFileObject fileObject = filer.createClassFile("com.yuangancheng.logtool.Te");
+//                PrintWriter writer = new PrintWriter(fileObject.openOutputStream());
+//                writer.print("");
+//                writer.flush();
+//                writer.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
         }
         return true;
     }
-
-    private int cnt = 0;
 
     /**
      * Generate annotation's key-value pair map and methods' name with TraceLog annotation

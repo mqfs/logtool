@@ -160,7 +160,7 @@ public class EnableTraceLogTranslator extends TreeTranslator {
 
     @Override
     public void visitMethodDef(JCTree.JCMethodDecl jcMethodDecl) {
-        if(!isMethodWithinFirstClass(jcMethodDecl) || !methodListWithAnnotation.contains(jcMethodDecl.getName().toString()))  {
+        if(!isMethodWithinFirstClass(jcMethodDecl) || !methodListWithAnnotation.contains(jcMethodDecl.getName().toString()) || (jcMethodDecl.getParameters().size() == 0 && jcMethodDecl.getReturnType().type instanceof Type.JCVoidType))  {
             super.visitMethodDef(jcMethodDecl);
             return;
         }

@@ -21,7 +21,7 @@ Logtool是一个支持打印Spring应用里的方法调用链中的每个方法�
 <dependency>
     <groupId>com.yuangancheng</groupId>
     <artifactId>logtool</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 

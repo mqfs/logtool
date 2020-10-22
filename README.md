@@ -23,7 +23,7 @@ Logtool is a Java library that provides facilities to log each method's paramete
 <dependency>
     <groupId>com.yuangancheng</groupId>
     <artifactId>logtool</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 

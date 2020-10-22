@@ -104,28 +104,6 @@ public class EnableTraceLogProcessor extends AbstractProcessor {
                 classTree.accept(classTranslator);
             }
         }
-        if(roundEnv.processingOver()) {
-//            InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream("templates/Te");
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-//            StringBuilder stringBuilder = new StringBuilder();
-//            try {
-//                while(reader.ready()) {
-//                    stringBuilder.append(reader.readLine());
-//                }
-//            }catch(Exception e) {
-//                e.printStackTrace();
-//            }
-//            JavacFiler filer = (JavacFiler)processingEnv.getFiler();
-//            try {
-//                JavaFileObject fileObject = filer.createClassFile("com.yuangancheng.logtool.Te");
-//                PrintWriter writer = new PrintWriter(fileObject.openOutputStream());
-//                writer.print("");
-//                writer.flush();
-//                writer.close();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-        }
         return true;
     }
 
